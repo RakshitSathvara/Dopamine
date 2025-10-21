@@ -25,6 +25,30 @@ enum ActivityCategory: String, Codable, CaseIterable {
     }
 }
 
+enum ActivityType: String, Codable, CaseIterable {
+    case focus
+    case creativity
+    case productivity
+    case wellness
+    case mindfulness
+    case energy
+
+    var displayName: String {
+        self.rawValue.capitalized
+    }
+
+    var icon: String {
+        switch self {
+        case .focus: return "target"
+        case .creativity: return "paintbrush.fill"
+        case .productivity: return "chart.line.uptrend.xyaxis"
+        case .wellness: return "heart.fill"
+        case .mindfulness: return "brain.head.profile"
+        case .energy: return "bolt.fill"
+        }
+    }
+}
+
 enum Difficulty: String, Codable {
     case easy
     case medium
@@ -44,6 +68,7 @@ struct Activity: Identifiable, Codable, Equatable {
     let difficulty: Difficulty
     let benefits: [String]
     let icon: String
+    let activityType: ActivityType?
 
     static func == (lhs: Activity, rhs: Activity) -> Bool {
         lhs.id == rhs.id
@@ -62,7 +87,8 @@ extension Activity {
             duration: 5,
             difficulty: .easy,
             benefits: ["Focus", "Calm", "Energy"],
-            icon: "🧘"
+            icon: "🧘",
+            activityType: .mindfulness
         ),
         Activity(
             id: "2",
@@ -72,7 +98,8 @@ extension Activity {
             duration: 10,
             difficulty: .easy,
             benefits: ["Energy", "Flexibility", "Wellness"],
-            icon: "💪"
+            icon: "💪",
+            activityType: .wellness
         ),
         Activity(
             id: "3",
@@ -82,7 +109,8 @@ extension Activity {
             duration: 15,
             difficulty: .easy,
             benefits: ["Focus", "Peace", "Clarity"],
-            icon: "🧘"
+            icon: "🧘",
+            activityType: .focus
         ),
 
         // Mains
@@ -94,7 +122,8 @@ extension Activity {
             duration: 90,
             difficulty: .hard,
             benefits: ["Productivity", "Achievement", "Growth"],
-            icon: "💻"
+            icon: "💻",
+            activityType: .productivity
         ),
         Activity(
             id: "5",
@@ -104,7 +133,8 @@ extension Activity {
             duration: 60,
             difficulty: .medium,
             benefits: ["Creativity", "Expression", "Flow"],
-            icon: "✍️"
+            icon: "✍️",
+            activityType: .creativity
         ),
         Activity(
             id: "6",
@@ -114,7 +144,8 @@ extension Activity {
             duration: 45,
             difficulty: .medium,
             benefits: ["Knowledge", "Growth", "Achievement"],
-            icon: "📚"
+            icon: "📚",
+            activityType: .focus
         ),
 
         // Sides
@@ -126,7 +157,8 @@ extension Activity {
             duration: 15,
             difficulty: .easy,
             benefits: ["Energy", "Health", "Clarity"],
-            icon: "🚶"
+            icon: "🚶",
+            activityType: .energy
         ),
         Activity(
             id: "8",
@@ -136,7 +168,8 @@ extension Activity {
             duration: 5,
             difficulty: .easy,
             benefits: ["Health", "Energy", "Wellness"],
-            icon: "💧"
+            icon: "💧",
+            activityType: .wellness
         ),
         Activity(
             id: "9",
@@ -146,7 +179,8 @@ extension Activity {
             duration: 20,
             difficulty: .easy,
             benefits: ["Focus", "Order", "Clarity"],
-            icon: "🧹"
+            icon: "🧹",
+            activityType: .productivity
         ),
 
         // Desserts
@@ -158,7 +192,8 @@ extension Activity {
             duration: 30,
             difficulty: .easy,
             benefits: ["Relaxation", "Knowledge", "Peace"],
-            icon: "📖"
+            icon: "📖",
+            activityType: .mindfulness
         ),
         Activity(
             id: "11",
@@ -168,7 +203,8 @@ extension Activity {
             duration: 10,
             difficulty: .easy,
             benefits: ["Positivity", "Peace", "Mindfulness"],
-            icon: "📝"
+            icon: "📝",
+            activityType: .mindfulness
         ),
         Activity(
             id: "12",
@@ -178,7 +214,8 @@ extension Activity {
             duration: 15,
             difficulty: .easy,
             benefits: ["Clarity", "Planning", "Peace"],
-            icon: "🌙"
+            icon: "🌙",
+            activityType: .focus
         ),
 
         // Special
@@ -190,7 +227,8 @@ extension Activity {
             duration: 60,
             difficulty: .medium,
             benefits: ["Mindfulness", "Peace", "Presence"],
-            icon: "📵"
+            icon: "📵",
+            activityType: .mindfulness
         ),
         Activity(
             id: "14",
@@ -200,7 +238,8 @@ extension Activity {
             duration: 45,
             difficulty: .easy,
             benefits: ["Peace", "Energy", "Wellness"],
-            icon: "🌳"
+            icon: "🌳",
+            activityType: .wellness
         ),
         Activity(
             id: "15",
@@ -210,7 +249,8 @@ extension Activity {
             duration: 120,
             difficulty: .medium,
             benefits: ["Creativity", "Joy", "Achievement"],
-            icon: "🎨"
+            icon: "🎨",
+            activityType: .creativity
         )
     ]
 

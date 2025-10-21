@@ -10,10 +10,11 @@ import SwiftUI
 struct AddActivitySheet: View {
     @Environment(\.dismiss) var dismiss
     let category: ActivityCategory
-    let onSave: (String, Int) -> Void
+    let onSave: (String, Int, ActivityType?) -> Void
 
     @State private var activityName = ""
     @State private var durationMinutes = 0
+    @State private var selectedType: ActivityType? = nil
     @FocusState private var focusedField: Field?
 
     enum Field {
@@ -53,6 +54,8 @@ struct AddActivitySheet: View {
                         icon: "clock.fill",
                         placeholder: "Duration"
                     )
+
+                    ActivityTypeChipSelector(selectedType: $selectedType)
                 }
                 .padding(.horizontal, 20)
 
@@ -62,14 +65,14 @@ struct AddActivitySheet: View {
                 VStack(spacing: 12) {
                     Button(action: {
                         if isValid {
-                            onSave(activityName, durationMinutes)
+                            onSave(activityName, durationMinutes, selectedType)
                             HapticManager.notification(.success)
                             dismiss()
                         }
                     }) {
                         Text("Add Activity")
                             .font(.h3)
-                            .foregroundColor(.adaptiveWhite)
+                            .foregroundColor(isValid ? .white : .adaptiveSecondary)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 16)
                             .background(
@@ -78,6 +81,7 @@ struct AddActivitySheet: View {
                             )
                     }
                     .disabled(!isValid)
+                    .buttonStyle(PlainButtonStyle())
 
                     Button(action: {
                         HapticManager.impact(.light)
@@ -93,6 +97,7 @@ struct AddActivitySheet: View {
                                     .fill(.ultraThinMaterial)
                             )
                     }
+                    .buttonStyle(PlainButtonStyle())
                 }
                 .padding(.horizontal, 20)
                 .padding(.bottom, 20)
@@ -116,5 +121,5 @@ struct AddActivitySheet: View {
 }
 
 #Preview {
-    AddActivitySheet(category: .starters, onSave: { _, _ in })
+    AddActivitySheet(category: .starters, onSave: { _, _, _ in })
 }
