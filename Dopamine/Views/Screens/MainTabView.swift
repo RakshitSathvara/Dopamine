@@ -34,7 +34,7 @@ struct MainTabView: View {
                         Label("Profile", systemImage: "person.fill")
                     }
             }
-            .tint(.white)
+            .tint(.adaptiveWhite)
         }
         .onChange(of: selectedTab) { oldValue, newValue in
             HapticManager.selection()
