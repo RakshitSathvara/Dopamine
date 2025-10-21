@@ -20,7 +20,8 @@ struct HomeView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
+            ZStack {
+                VStack(spacing: 0) {
                     // Header
                     HomeHeader(
                         userName: user.name,
@@ -75,20 +76,20 @@ struct HomeView: View {
                         .padding(.top, 24)
                         .padding(.bottom, 100)
                     }
+                }
 
-                    // Add to Cart Button (Fixed at bottom)
-                    if !selectedActivities.isEmpty {
-                        VStack {
-                            Spacer()
-                            GlassButton(
-                                title: "Add to Cart (\(selectedActivities.count))",
-                                icon: "cart.badge.plus",
-                                action: addToCart
-                            )
-                            .padding(.horizontal, 20)
-                            .padding(.bottom, 16)
-                            .transition(.move(edge: .bottom).combined(with: .opacity))
-                        }
+                // Add to Cart Button (Fixed at bottom)
+                if !selectedActivities.isEmpty {
+                    VStack {
+                        Spacer()
+                        GlassButton(
+                            title: "Add to Cart (\(selectedActivities.count))",
+                            icon: "cart.badge.plus",
+                            action: addToCart
+                        )
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 16)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
                 }
             }
