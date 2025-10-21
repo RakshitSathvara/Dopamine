@@ -12,13 +12,7 @@ struct SplashView: View {
     @State private var moveToLogin = false
 
     var body: some View {
-        ZStack {
-            // Gradient Background
-            Color.Gradients.vibrant
-                .ignoresSafeArea()
-
-            // Logo with glass effect
-            VStack(spacing: 24) {
+        VStack(spacing: 24) {
                 ZStack {
                     Circle()
                         .fill(Color.white.opacity(0.2))
@@ -36,22 +30,21 @@ struct SplashView: View {
 
                     Text("D")
                         .font(.system(size: 60, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
+                        .foregroundColor(.adaptiveWhite)
                 }
                 .scaleEffect(isAnimating ? 1.0 : 0.8)
                 .rotationEffect(.degrees(isAnimating ? 360 : 0))
 
                 Text("Dopamine")
                     .font(.displayMedium)
-                    .foregroundColor(.white)
+                    .foregroundColor(.adaptiveWhite)
                     .fontWeight(.bold)
 
                 Text("Break free from doomscrolling")
                     .font(.bodyRegular)
-                    .foregroundColor(.white.opacity(0.9))
-            }
-            .opacity(isAnimating ? 1.0 : 0.0)
+                    .foregroundColor(.adaptiveSecondary)
         }
+        .opacity(isAnimating ? 1.0 : 0.0)
         .onAppear {
             withAnimation(.spring(response: 1.2, dampingFraction: 0.6)) {
                 isAnimating = true

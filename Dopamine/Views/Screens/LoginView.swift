@@ -14,23 +14,18 @@ struct LoginView: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        ZStack {
-            // Vibrant gradient background (essential for glass effects)
-            Color.Gradients.vibrant
-                .ignoresSafeArea()
-
-            VStack(spacing: 32) {
+        VStack(spacing: 32) {
                 Spacer()
 
                 // Header
                 VStack(spacing: 12) {
                     Text("Welcome Back")
                         .font(.system(size: 40, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
+                        .foregroundColor(.adaptiveWhite)
 
                     Text("Enter your email to continue")
                         .font(.bodyRegular)
-                        .foregroundColor(.white.opacity(0.9))
+                        .foregroundColor(.adaptiveSecondary)
                 }
 
                 // Glass Input Container
@@ -75,17 +70,16 @@ struct LoginView: View {
                 HStack(spacing: 8) {
                     Text("Terms of Service")
                         .font(.caption)
-                        .foregroundColor(.white.opacity(0.7))
+                        .foregroundColor(.adaptiveTertiary)
 
                     Text("•")
-                        .foregroundColor(.white.opacity(0.5))
+                        .foregroundColor(.adaptiveTertiary)
 
                     Text("Privacy")
                         .font(.caption)
-                        .foregroundColor(.white.opacity(0.7))
+                        .foregroundColor(.adaptiveTertiary)
                 }
                 .padding(.bottom, 20)
-            }
         }
         .fullScreenCover(isPresented: $showOTPView) {
             OTPVerificationView(email: email)

@@ -15,6 +15,8 @@ struct ProfileView: View {
     ]
     @State private var orders = Order.sampleOrders
     @State private var showToast = false
+    @StateObject private var themeManager = ThemeManager.shared
+    @State private var showThemeSelector = false
 
     var totalDuration: Int {
         cartItems.reduce(0) { $0 + $1.duration }
@@ -22,22 +24,25 @@ struct ProfileView: View {
 
     var body: some View {
         NavigationStack {
-            ZStack {
-                Color.Gradients.purple
-                    .ignoresSafeArea()
-
-                ScrollView {
+            ScrollView {
                     VStack(spacing: 24) {
                         // Profile Header
                         ProfileHeader(user: user)
                             .padding(.horizontal, 20)
+
+                        // Theme Selector
+                        ThemeSelectorCard(
+                            currentTheme: $themeManager.currentTheme,
+                            showThemeSelector: $showThemeSelector
+                        )
+                        .padding(.horizontal, 20)
 
                         // Cart Section
                         if !cartItems.isEmpty {
                             VStack(alignment: .leading, spacing: 16) {
                                 Text("Your Cart")
                                     .font(.h2)
-                                    .foregroundColor(.white)
+                                    .foregroundColor(.adaptiveWhite)
                                     .padding(.horizontal, 20)
 
                                 VStack(spacing: 12) {
@@ -57,13 +62,13 @@ struct ProfileView: View {
                                     HStack {
                                         Text("Total:")
                                             .font(.h3)
-                                            .foregroundColor(.white)
+                                            .foregroundColor(.adaptiveWhite)
 
                                         Spacer()
 
                                         Text("\(totalDuration) minutes")
                                             .font(.h3)
-                                            .foregroundColor(.white)
+                                            .foregroundColor(.adaptiveWhite)
                                             .fontWeight(.bold)
                                     }
                                     .padding(.horizontal, 20)
@@ -82,7 +87,7 @@ struct ProfileView: View {
                         VStack(alignment: .leading, spacing: 16) {
                             Text("Order History")
                                 .font(.h2)
-                                .foregroundColor(.white)
+                                .foregroundColor(.adaptiveWhite)
                                 .padding(.horizontal, 20)
 
                             VStack(spacing: 12) {
@@ -96,7 +101,6 @@ struct ProfileView: View {
                     }
                     .padding(.top, 16)
                     .padding(.bottom, 100)
-                }
             }
             .navigationTitle("Profile")
             .navigationBarTitleDisplayMode(.inline)
@@ -107,7 +111,7 @@ struct ProfileView: View {
                         HapticManager.impact(.light)
                     } label: {
                         Image(systemName: "gearshape.fill")
-                            .foregroundColor(.white)
+                            .foregroundColor(.adaptiveWhite)
                     }
                 }
             }
@@ -172,18 +176,18 @@ struct ProfileHeader: View {
                     .overlay {
                         Text(String(user.name.prefix(1)))
                             .font(.system(size: 36, weight: .bold))
-                            .foregroundColor(.white)
+                            .foregroundColor(.adaptiveWhite)
                     }
 
                 // User Info
                 VStack(spacing: 4) {
                     Text(user.name)
                         .font(.h2)
-                        .foregroundColor(.white)
+                        .foregroundColor(.adaptiveWhite)
 
                     Text(user.email)
                         .font(.bodySmall)
-                        .foregroundColor(.white.opacity(0.8))
+                        .foregroundColor(.adaptiveSecondary)
                 }
 
                 // Streak
@@ -193,7 +197,7 @@ struct ProfileHeader: View {
 
                     Text("\(user.statistics.currentStreak) day streak!")
                         .font(.h3)
-                        .foregroundColor(.white)
+                        .foregroundColor(.adaptiveWhite)
                 }
                 .padding()
                 .background(
@@ -240,11 +244,11 @@ struct StatItem: View {
         VStack(spacing: 4) {
             Text(value)
                 .font(.h2)
-                .foregroundColor(.white)
+                .foregroundColor(.adaptiveWhite)
 
             Text(label)
                 .font(.caption)
-                .foregroundColor(.white.opacity(0.8))
+                .foregroundColor(.adaptiveSecondary)
         }
     }
 }
@@ -262,11 +266,11 @@ struct CartItemCard: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(activity.name)
                         .font(.h3)
-                        .foregroundColor(.white)
+                        .foregroundColor(.adaptiveWhite)
 
                     Label("\(activity.duration) min", systemImage: "clock.fill")
                         .font(.caption)
-                        .foregroundColor(.white.opacity(0.8))
+                        .foregroundColor(.adaptiveSecondary)
                 }
 
                 Spacer()
@@ -274,7 +278,7 @@ struct CartItemCard: View {
                 Button(action: onRemove) {
                     Image(systemName: "xmark.circle.fill")
                         .font(.title2)
-                        .foregroundColor(.white.opacity(0.6))
+                        .foregroundColor(.adaptiveTertiary)
                 }
             }
             .padding(12)
@@ -292,11 +296,11 @@ struct OrderCard: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(order.status == .completed ? "Completed Activities" : "Active Order")
                             .font(.h3)
-                            .foregroundColor(.white)
+                            .foregroundColor(.adaptiveWhite)
 
                         Text("\(order.completedItemsCount) of \(order.items.count) completed • \(order.createdAt.formatShort())")
                             .font(.caption)
-                            .foregroundColor(.white.opacity(0.8))
+                            .foregroundColor(.adaptiveSecondary)
                     }
 
                     Spacer()
@@ -330,28 +334,93 @@ struct OrderCard: View {
                     ForEach(order.items.prefix(3)) { item in
                         HStack {
                             Image(systemName: item.isCompleted ? "checkmark.circle.fill" : "circle")
-                                .foregroundColor(item.isCompleted ? .green : .white.opacity(0.5))
+                                .foregroundColor(item.isCompleted ? .green : .adaptiveTertiary)
 
                             Text(item.activityName)
                                 .font(.bodySmall)
-                                .foregroundColor(.white.opacity(0.9))
+                                .foregroundColor(.adaptiveWhite)
 
                             Spacer()
 
                             Text("\(item.duration) min")
                                 .font(.caption)
-                                .foregroundColor(.white.opacity(0.7))
+                                .foregroundColor(.adaptiveSecondary)
                         }
                     }
 
                     if order.items.count > 3 {
                         Text("+ \(order.items.count - 3) more")
                             .font(.caption)
-                            .foregroundColor(.white.opacity(0.7))
+                            .foregroundColor(.adaptiveTertiary)
                     }
                 }
             }
             .padding(16)
+        }
+    }
+}
+
+struct ThemeSelectorCard: View {
+    @Binding var currentTheme: AppTheme
+    @Binding var showThemeSelector: Bool
+
+    var body: some View {
+        GlassCard(cornerRadius: 16) {
+            VStack(spacing: 12) {
+                HStack {
+                    Image(systemName: "paintbrush.fill")
+                        .foregroundColor(.adaptiveWhite)
+
+                    Text("Theme")
+                        .font(.h3)
+                        .foregroundColor(.adaptiveWhite)
+
+                    Spacer()
+                }
+
+                HStack(spacing: 12) {
+                    ForEach(AppTheme.allCases, id: \.self) { theme in
+                        ThemeOptionButton(
+                            theme: theme,
+                            isSelected: currentTheme == theme,
+                            action: {
+                                ThemeManager.shared.setTheme(theme)
+                            }
+                        )
+                    }
+                }
+            }
+            .padding(16)
+        }
+    }
+}
+
+struct ThemeOptionButton: View {
+    let theme: AppTheme
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 8) {
+                Image(systemName: theme.icon)
+                    .font(.title2)
+                    .foregroundColor(isSelected ? .purple : .adaptiveSecondary)
+
+                Text(theme.rawValue)
+                    .font(.caption)
+                    .foregroundColor(isSelected ? .purple : .adaptiveSecondary)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(isSelected ? Color.purple.opacity(0.2) : .clear)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(isSelected ? Color.purple : Color.borderLight, lineWidth: isSelected ? 2 : 1)
+            )
         }
     }
 }

@@ -20,12 +20,7 @@ struct HomeView: View {
 
     var body: some View {
         NavigationStack {
-            ZStack {
-                // Background
-                Color.Gradients.purple
-                    .ignoresSafeArea()
-
-                VStack(spacing: 0) {
+            VStack(spacing: 0) {
                     // Header
                     HomeHeader(
                         userName: user.name,
@@ -62,7 +57,7 @@ struct HomeView: View {
 
                                     Image(systemName: "arrow.right")
                                 }
-                                .foregroundColor(.white)
+                                .foregroundColor(.adaptiveWhite)
                                 .frame(maxWidth: .infinity)
                                 .padding()
                                 .background(
@@ -80,21 +75,20 @@ struct HomeView: View {
                         .padding(.top, 24)
                         .padding(.bottom, 100)
                     }
-                }
 
-                // Add to Cart Button (Fixed at bottom)
-                VStack {
-                    Spacer()
-
+                    // Add to Cart Button (Fixed at bottom)
                     if !selectedActivities.isEmpty {
-                        GlassButton(
-                            title: "Add to Cart (\(selectedActivities.count))",
-                            icon: "cart.badge.plus",
-                            action: addToCart
-                        )
-                        .padding(.horizontal, 20)
-                        .padding(.bottom, 16)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        VStack {
+                            Spacer()
+                            GlassButton(
+                                title: "Add to Cart (\(selectedActivities.count))",
+                                icon: "cart.badge.plus",
+                                action: addToCart
+                            )
+                            .padding(.horizontal, 20)
+                            .padding(.bottom, 16)
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                        }
                     }
                 }
             }
@@ -143,13 +137,13 @@ struct HomeHeader: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Welcome back, \(userName)! 👋")
                         .font(.h2)
-                        .foregroundColor(.white)
+                        .foregroundColor(.adaptiveWhite)
 
                     if streak > 0 {
                         HStack(spacing: 6) {
                             Text("You have a \(streak) day streak")
                                 .font(.bodySmall)
-                                .foregroundColor(.white.opacity(0.8))
+                                .foregroundColor(.adaptiveSecondary)
 
                             Text("🔥")
                         }
@@ -165,7 +159,7 @@ struct HomeHeader: View {
                     } label: {
                         Image(systemName: "bell.fill")
                             .font(.title3)
-                            .foregroundColor(.white.opacity(0.9))
+                            .foregroundColor(.adaptiveWhite)
                     }
 
                     Circle()
@@ -175,7 +169,7 @@ struct HomeHeader: View {
                             Text(String(userName.prefix(1)))
                                 .font(.bodySmall)
                                 .fontWeight(.semibold)
-                                .foregroundColor(.white)
+                                .foregroundColor(.adaptiveWhite)
                         }
                 }
             }
@@ -197,19 +191,19 @@ struct ActivityCard: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(activity.name)
                         .font(.h3)
-                        .foregroundColor(.white)
+                        .foregroundColor(.adaptiveWhite)
 
                     HStack(spacing: 8) {
                         Label("\(activity.duration) min", systemImage: "clock.fill")
                             .font(.caption)
-                            .foregroundColor(.white.opacity(0.8))
+                            .foregroundColor(.adaptiveSecondary)
 
                         Text("•")
-                            .foregroundColor(.white.opacity(0.6))
+                            .foregroundColor(.adaptiveTertiary)
 
                         Text(activity.category.displayName)
                             .font(.caption)
-                            .foregroundColor(.white.opacity(0.8))
+                            .foregroundColor(.adaptiveSecondary)
                     }
                 }
 
@@ -236,7 +230,7 @@ struct ToastView: View {
 
                     Text(message)
                         .font(.bodySmall)
-                        .foregroundColor(.white)
+                        .foregroundColor(.adaptiveWhite)
                 }
                 .padding()
                 .background(
