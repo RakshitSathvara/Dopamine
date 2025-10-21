@@ -13,15 +13,15 @@ struct AddActivitySheet: View {
     let onSave: (String, Int) -> Void
 
     @State private var activityName = ""
-    @State private var durationText = ""
+    @State private var durationMinutes = 0
     @FocusState private var focusedField: Field?
 
     enum Field {
-        case name, duration
+        case name
     }
 
     var isValid: Bool {
-        !activityName.isEmpty && !durationText.isEmpty && Int(durationText) != nil && Int(durationText)! > 0
+        !activityName.isEmpty && durationMinutes > 0
     }
 
     var body: some View {
@@ -48,13 +48,11 @@ struct AddActivitySheet: View {
                     )
                     .focused($focusedField, equals: .name)
 
-                    GlassTextField(
-                        text: $durationText,
-                        placeholder: "Duration (minutes)",
-                        icon: "clock.fill"
+                    DurationPickerField(
+                        durationMinutes: $durationMinutes,
+                        icon: "clock.fill",
+                        placeholder: "Duration"
                     )
-                    .focused($focusedField, equals: .duration)
-                    .keyboardType(.numberPad)
                 }
                 .padding(.horizontal, 20)
 
@@ -63,8 +61,8 @@ struct AddActivitySheet: View {
                 // Action Buttons
                 VStack(spacing: 12) {
                     Button(action: {
-                        if isValid, let duration = Int(durationText) {
-                            onSave(activityName, duration)
+                        if isValid {
+                            onSave(activityName, durationMinutes)
                             HapticManager.notification(.success)
                             dismiss()
                         }
@@ -99,7 +97,7 @@ struct AddActivitySheet: View {
                 .padding(.horizontal, 20)
                 .padding(.bottom, 20)
             }
-            .background(Color.adaptiveTertiary)
+            .background(Color.secondaryBackground)
             .navigationTitle("New Activity")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
