@@ -13,16 +13,23 @@ struct MenuView: View {
     @Binding var cart: [Activity]
     @State private var showToast = false
     @State private var toastMessage = ""
+    @State private var activities: [Activity] = Activity.sampleActivities
+    @State private var showingAddActivity = false
+    @State private var selectedCategory: ActivityCategory = .starters
 
     var filteredActivities: [Activity] {
         if searchText.isEmpty {
-            return Activity.sampleActivities
+            return activities
         } else {
-            return Activity.sampleActivities.filter {
+            return activities.filter {
                 $0.name.localizedCaseInsensitiveContains(searchText) ||
                 $0.description.localizedCaseInsensitiveContains(searchText)
             }
         }
+    }
+
+    func activities(for category: ActivityCategory) -> [Activity] {
+        activities.filter { $0.category == category }
     }
 
     var body: some View {
@@ -43,13 +50,20 @@ struct MenuView: View {
                             ForEach(ActivityCategory.allCases, id: \.self) { category in
                                 CategorySection(
                                     category: category,
-                                    activities: Activity.activities(for: category),
+                                    activities: activities(for: category),
                                     isExpanded: expandedCategories.contains(category),
                                     onToggle: {
                                         toggleCategory(category)
                                     },
-                                    onAddActivity: { activity in
-                                        addActivity(activity)
+                                    onAddToCart: { activity in
+                                        addToCart(activity)
+                                    },
+                                    onAddActivity: {
+                                        selectedCategory = category
+                                        showingAddActivity = true
+                                    },
+                                    onRemoveActivity: { activity in
+                                        removeActivity(activity)
                                     }
                                 )
                             }
@@ -59,7 +73,10 @@ struct MenuView: View {
                                 MenuActivityCard(
                                     activity: activity,
                                     onAdd: {
-                                        addActivity(activity)
+                                        addToCart(activity)
+                                    },
+                                    onRemove: {
+                                        removeActivity(activity)
                                     }
                                 )
                             }
@@ -76,6 +93,14 @@ struct MenuView: View {
             ToastView(message: toastMessage, isShowing: $showToast)
                 .animation(.spring(), value: showToast)
         )
+        .sheet(isPresented: $showingAddActivity) {
+            AddActivitySheet(
+                category: selectedCategory,
+                onSave: { name, duration in
+                    addNewActivity(name: name, duration: duration, category: selectedCategory)
+                }
+            )
+        }
     }
 
     private func toggleCategory(_ category: ActivityCategory) {
@@ -89,10 +114,44 @@ struct MenuView: View {
         HapticManager.impact(.light)
     }
 
-    private func addActivity(_ activity: Activity) {
+    private func addToCart(_ activity: Activity) {
         HapticManager.notification(.success)
         cart.append(activity)
         toastMessage = "Added \(activity.name) to cart!"
+        showToast = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            showToast = false
+        }
+    }
+
+    private func addNewActivity(name: String, duration: Int, category: ActivityCategory) {
+        let newActivity = Activity(
+            id: UUID().uuidString,
+            name: name,
+            description: "Custom activity",
+            category: category,
+            duration: duration,
+            difficulty: .easy,
+            benefits: ["Custom"],
+            icon: "⭐"
+        )
+        withAnimation {
+            activities.append(newActivity)
+        }
+        HapticManager.notification(.success)
+        toastMessage = "Added \(name) to \(category.displayName)!"
+        showToast = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            showToast = false
+        }
+    }
+
+    private func removeActivity(_ activity: Activity) {
+        withAnimation {
+            activities.removeAll { $0.id == activity.id }
+        }
+        HapticManager.impact(.medium)
+        toastMessage = "Removed \(activity.name)"
         showToast = true
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
             showToast = false
@@ -105,30 +164,47 @@ struct CategorySection: View {
     let activities: [Activity]
     let isExpanded: Bool
     let onToggle: () -> Void
-    let onAddActivity: (Activity) -> Void
+    let onAddToCart: (Activity) -> Void
+    let onAddActivity: () -> Void
+    let onRemoveActivity: (Activity) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             // Category Header
-            Button(action: onToggle) {
-                HStack {
-                    Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
-                        .font(.bodySmall)
-                        .foregroundColor(.adaptiveSecondary)
+            HStack {
+                Button(action: onToggle) {
+                    HStack(spacing: 8) {
+                        Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
+                            .font(.bodySmall)
+                            .foregroundColor(.adaptiveSecondary)
 
-                    Text(category.displayName)
-                        .font(.h2)
+                        Text(category.displayName)
+                            .font(.h2)
+                            .foregroundColor(.adaptiveWhite)
+                    }
+                }
+
+                Spacer()
+
+                Text("\(activities.count)")
+                    .font(.caption)
+                    .foregroundColor(.adaptiveSecondary)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(
+                        Capsule()
+                            .fill(.ultraThinMaterial)
+                    )
+
+                // Plus Button
+                Button(action: onAddActivity) {
+                    Image(systemName: "plus")
+                        .font(.bodyLarge)
+                        .fontWeight(.semibold)
                         .foregroundColor(.adaptiveWhite)
-
-                    Spacer()
-
-                    Text("\(activities.count)")
-                        .font(.caption)
-                        .foregroundColor(.adaptiveSecondary)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 4)
+                        .frame(width: 32, height: 32)
                         .background(
-                            Capsule()
+                            Circle()
                                 .fill(.ultraThinMaterial)
                         )
                 }
@@ -141,7 +217,10 @@ struct CategorySection: View {
                         MenuActivityCard(
                             activity: activity,
                             onAdd: {
-                                onAddActivity(activity)
+                                onAddToCart(activity)
+                            },
+                            onRemove: {
+                                onRemoveActivity(activity)
                             }
                         )
                         .transition(.asymmetric(
@@ -158,6 +237,7 @@ struct CategorySection: View {
 struct MenuActivityCard: View {
     let activity: Activity
     let onAdd: () -> Void
+    let onRemove: () -> Void
     @State private var isAdded = false
 
     var body: some View {
@@ -190,6 +270,19 @@ struct MenuActivityCard: View {
                 }
 
                 Spacer()
+
+                // Remove Button
+                Button(action: onRemove) {
+                    Image(systemName: "trash")
+                        .font(.bodySmall)
+                        .fontWeight(.medium)
+                        .foregroundColor(.red)
+                        .frame(width: 36, height: 36)
+                        .background(
+                            Circle()
+                                .fill(.ultraThinMaterial)
+                        )
+                }
 
                 // Add Button
                 Button(action: {
