@@ -1,0 +1,47 @@
+//
+//  MainTabView.swift
+//  Dopamine
+//
+//  Created by Rakshit on 21/10/25.
+//
+
+import SwiftUI
+
+struct MainTabView: View {
+    @State private var selectedTab = 0
+    @State private var cart: [Activity] = []
+
+    var body: some View {
+        ZStack {
+            TabView(selection: $selectedTab) {
+                HomeView()
+                    .tag(0)
+                    .tabItem {
+                        Label("Home", systemImage: "house.fill")
+                    }
+
+                NavigationStack {
+                    MenuView(cart: $cart)
+                }
+                .tag(1)
+                .tabItem {
+                    Label("Menu", systemImage: "list.bullet")
+                }
+
+                ProfileView()
+                    .tag(2)
+                    .tabItem {
+                        Label("Profile", systemImage: "person.fill")
+                    }
+            }
+            .tint(.white)
+        }
+        .onChange(of: selectedTab) { oldValue, newValue in
+            HapticManager.selection()
+        }
+    }
+}
+
+#Preview {
+    MainTabView()
+}
