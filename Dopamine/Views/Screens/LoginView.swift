@@ -20,7 +20,7 @@ struct LoginView: View {
                 // Header
                 VStack(spacing: 12) {
                     Text("Welcome Back")
-                        .font(.system(size: 40, weight: .bold, design: .rounded))
+                        .font(.displayLarge)
                         .foregroundColor(.adaptiveWhite)
 
                     Text("Enter your email to continue")
