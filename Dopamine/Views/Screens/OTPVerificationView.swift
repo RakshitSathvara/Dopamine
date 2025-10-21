@@ -21,11 +21,7 @@ struct OTPVerificationView: View {
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     var body: some View {
-        ZStack {
-            Color.Gradients.purple
-                .ignoresSafeArea()
-
-            VStack(spacing: 40) {
+        VStack(spacing: 40) {
                 HStack {
                     Button(action: {
                         HapticManager.impact(.light)
@@ -33,7 +29,7 @@ struct OTPVerificationView: View {
                     }) {
                         Image(systemName: "chevron.left")
                             .font(.title3)
-                            .foregroundColor(.white)
+                            .foregroundColor(.adaptiveWhite)
                             .padding()
                             .background(
                                 Circle()
@@ -51,16 +47,16 @@ struct OTPVerificationView: View {
                 VStack(spacing: 16) {
                     Text("Enter verification code")
                         .font(.h1)
-                        .foregroundColor(.white)
+                        .foregroundColor(.adaptiveWhite)
 
                     VStack(spacing: 4) {
                         Text("Code sent to")
                             .font(.bodyRegular)
-                            .foregroundColor(.white.opacity(0.8))
+                            .foregroundColor(.adaptiveSecondary)
 
                         Text(email)
                             .font(.bodySmall)
-                            .foregroundColor(.white)
+                            .foregroundColor(.adaptiveWhite)
                             .fontWeight(.semibold)
                     }
                 }
@@ -89,19 +85,19 @@ struct OTPVerificationView: View {
                 HStack(spacing: 8) {
                     Text("Didn't receive code?")
                         .font(.bodySmall)
-                        .foregroundColor(.white.opacity(0.8))
+                        .foregroundColor(.adaptiveSecondary)
 
                     if timeRemaining > 0 {
                         Text("Resend in \(formatTime(timeRemaining))")
                             .font(.bodySmall)
-                            .foregroundColor(.white.opacity(0.6))
+                            .foregroundColor(.adaptiveTertiary)
                     } else {
                         Button("Resend") {
                             HapticManager.impact(.light)
                             resendOTP()
                         }
                         .font(.bodySmall)
-                        .foregroundColor(.white)
+                        .foregroundColor(.adaptiveWhite)
                     }
                 }
 
@@ -115,7 +111,6 @@ struct OTPVerificationView: View {
                 .padding(.horizontal, 30)
 
                 Spacer()
-            }
         }
         .onAppear {
             focusedField = 0
@@ -175,14 +170,14 @@ struct OTPDigitField: View {
                 .keyboardType(.numberPad)
                 .multilineTextAlignment(.center)
                 .font(.h2)
-                .foregroundColor(.white)
+                .foregroundColor(.adaptiveWhite)
                 .frame(height: 56)
                 .background(Color.clear)
         }
         .overlay(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .stroke(
-                    isFocused ? Color.white.opacity(0.6) : Color.borderLight,
+                    isFocused ? Color.adaptiveWhite.opacity(0.6) : Color.borderLight,
                     lineWidth: isFocused ? 2 : 1
                 )
         )

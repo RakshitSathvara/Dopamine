@@ -9,9 +9,12 @@ import SwiftUI
 
 @main
 struct DopamineApp: App {
+    @StateObject private var themeManager = ThemeManager.shared
+
     var body: some Scene {
         WindowGroup {
             MainTabView()
+                .preferredColorScheme(themeManager.currentTheme.colorScheme)
         }
     }
 }

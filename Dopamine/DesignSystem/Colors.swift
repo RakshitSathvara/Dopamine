@@ -13,76 +13,30 @@ extension Color {
     static let textSecondary = Color.secondary
     static let textTertiary = Color.gray.opacity(0.6)
 
-    // MARK: - Background Gradients
-    struct Gradients {
-        // Light Mode
-        static let lightPrimary = LinearGradient(
-            colors: [
-                Color(hex: "#E0E7FF"), // Light Indigo
-                Color(hex: "#F5F3FF"), // Light Purple
-                Color(hex: "#FDF4FF")  // Light Pink
-            ],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
+    // MARK: - Theme-aware Background Colors
+    static var appBackground: Color {
+        Color(uiColor: .systemBackground)
+    }
 
-        static let lightAccent = LinearGradient(
-            colors: [
-                Color(hex: "#DBEAFE"), // Light Blue
-                Color(hex: "#E0E7FF")  // Light Indigo
-            ],
-            startPoint: .top,
-            endPoint: .bottom
-        )
+    static var secondaryBackground: Color {
+        Color(uiColor: .secondarySystemBackground)
+    }
 
-        // Dark Mode
-        static let darkPrimary = LinearGradient(
-            colors: [
-                Color(hex: "#1F2937"), // Dark Gray
-                Color(hex: "#111827"), // Darker Gray
-                Color(hex: "#0F172A")  // Almost Black
-            ],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
+    static var tertiaryBackground: Color {
+        Color(uiColor: .tertiarySystemBackground)
+    }
 
-        static let darkAccent = LinearGradient(
-            colors: [
-                Color(hex: "#312E81"), // Dark Indigo
-                Color(hex: "#1E1B4B")  // Darker Indigo
-            ],
-            startPoint: .top,
-            endPoint: .bottom
-        )
+    // MARK: - Theme-aware Text Colors
+    static var adaptiveWhite: Color {
+        Color(uiColor: .label)
+    }
 
-        // Vibrant gradients for glass backgrounds
-        static let purple = LinearGradient(
-            colors: [
-                Color.purple.opacity(0.15),
-                Color.blue.opacity(0.08)
-            ],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
+    static var adaptiveSecondary: Color {
+        Color(uiColor: .secondaryLabel)
+    }
 
-        static let blue = LinearGradient(
-            colors: [
-                Color.blue.opacity(0.10),
-                Color.purple.opacity(0.08)
-            ],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
-
-        static let vibrant = LinearGradient(
-            colors: [
-                Color.purple,
-                Color.blue,
-                Color.pink
-            ],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
+    static var adaptiveTertiary: Color {
+        Color(uiColor: .tertiaryLabel)
     }
 
     // MARK: - Glass Tints

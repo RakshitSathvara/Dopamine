@@ -26,11 +26,7 @@ struct MenuView: View {
     }
 
     var body: some View {
-        ZStack {
-            Color.Gradients.blue
-                .ignoresSafeArea()
-
-            VStack(spacing: 0) {
+        VStack(spacing: 0) {
                 // Search Bar
                 GlassTextField(
                     text: $searchText,
@@ -72,7 +68,6 @@ struct MenuView: View {
                     .padding(.horizontal, 20)
                     .padding(.bottom, 24)
                 }
-            }
         }
         .navigationTitle("Browse Activities")
         .navigationBarTitleDisplayMode(.inline)
@@ -119,17 +114,17 @@ struct CategorySection: View {
                 HStack {
                     Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
                         .font(.bodySmall)
-                        .foregroundColor(.white.opacity(0.8))
+                        .foregroundColor(.adaptiveSecondary)
 
                     Text(category.displayName)
                         .font(.h2)
-                        .foregroundColor(.white)
+                        .foregroundColor(.adaptiveWhite)
 
                     Spacer()
 
                     Text("\(activities.count)")
                         .font(.caption)
-                        .foregroundColor(.white.opacity(0.8))
+                        .foregroundColor(.adaptiveSecondary)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 4)
                         .background(
@@ -175,20 +170,20 @@ struct MenuActivityCard: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(activity.name)
                         .font(.h3)
-                        .foregroundColor(.white)
+                        .foregroundColor(.adaptiveWhite)
 
                     HStack(spacing: 8) {
                         Label("\(activity.duration) min", systemImage: "clock.fill")
                             .font(.caption)
-                            .foregroundColor(.white.opacity(0.8))
+                            .foregroundColor(.adaptiveSecondary)
 
                         Text("•")
-                            .foregroundColor(.white.opacity(0.6))
+                            .foregroundColor(.adaptiveTertiary)
 
                         if let benefit = activity.benefits.first {
                             Text(benefit)
                                 .font(.caption)
-                                .foregroundColor(.white.opacity(0.8))
+                                .foregroundColor(.adaptiveSecondary)
                                 .lineLimit(1)
                         }
                     }
@@ -211,7 +206,7 @@ struct MenuActivityCard: View {
                     Image(systemName: isAdded ? "checkmark" : "plus")
                         .font(.bodyLarge)
                         .fontWeight(.semibold)
-                        .foregroundColor(isAdded ? .green : .white)
+                        .foregroundColor(isAdded ? .green : .adaptiveWhite)
                         .frame(width: 40, height: 40)
                         .background(
                             Circle()
