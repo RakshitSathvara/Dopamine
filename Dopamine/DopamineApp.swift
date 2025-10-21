@@ -11,7 +11,7 @@ import SwiftUI
 struct DopamineApp: App {
     var body: some Scene {
         WindowGroup {
-            SplashView()
+            MainTabView()
         }
     }
 }
