@@ -17,16 +17,18 @@ struct GlassTextField: View {
             if let icon = icon {
                 Image(systemName: icon)
                     .foregroundColor(.white.opacity(0.7))
-                    .font(.bodyRegular)
+                    .font(.textInput)
             }
 
             ZStack(alignment: .leading) {
                 if text.isEmpty {
                     Text(placeholder)
                         .foregroundColor(.white.opacity(0.5))
+                        .font(.textInputPlaceholder)
                 }
                 TextField("", text: $text)
                     .foregroundColor(.white)
+                    .font(.textInput)
                     .accentColor(.white)
             }
         }
