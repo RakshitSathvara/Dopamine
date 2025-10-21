@@ -190,9 +190,28 @@ struct ActivityCard: View {
                 CustomCheckbox(isChecked: isSelected, onToggle: onToggle)
 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(activity.name)
-                        .font(.h3)
-                        .foregroundColor(.adaptiveWhite)
+                    HStack(spacing: 8) {
+                        Text(activity.name)
+                            .font(.h3)
+                            .foregroundColor(.adaptiveWhite)
+
+                        if let activityType = activity.activityType {
+                            HStack(spacing: 4) {
+                                Image(systemName: activityType.icon)
+                                    .font(.system(size: 10))
+                                Text(activityType.displayName)
+                                    .font(.system(size: 10))
+                                    .fontWeight(.medium)
+                            }
+                            .foregroundColor(.adaptiveWhite)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(
+                                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                    .fill(Color.accentColor.opacity(0.6))
+                            )
+                        }
+                    }
 
                     HStack(spacing: 8) {
                         Label("\(activity.duration) min", systemImage: "clock.fill")
