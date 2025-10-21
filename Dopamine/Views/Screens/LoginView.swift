@@ -54,7 +54,7 @@ struct LoginView: View {
                             sendOTP()
                         },
                         isLoading: isLoading,
-                        isDisabled: email.isEmpty || !email.isValidEmail
+                        isDisabled: false
                     )
                 }
                 .padding(30)

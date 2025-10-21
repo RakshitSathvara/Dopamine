@@ -110,7 +110,7 @@ struct OTPVerificationView: View {
                     title: "Verify Code",
                     action: verifyOTP,
                     isLoading: isLoading,
-                    isDisabled: otpCode.joined().count < 6
+                    isDisabled: false
                 )
                 .padding(.horizontal, 30)
 
@@ -135,12 +135,6 @@ struct OTPVerificationView: View {
             focusedField = index + 1
         } else if value.isEmpty && index > 0 {
             focusedField = index - 1
-        }
-
-        // Auto-verify when all fields filled
-        if otpCode.joined().count == 6 {
-            HapticManager.notification(.success)
-            verifyOTP()
         }
     }
 
