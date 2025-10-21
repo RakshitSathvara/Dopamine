@@ -99,7 +99,7 @@ struct AddActivitySheet: View {
                 .padding(.horizontal, 20)
                 .padding(.bottom, 20)
             }
-            .background(Color.adaptiveBackground)
+            .background(Color.adaptiveTertiary)
             .navigationTitle("New Activity")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
