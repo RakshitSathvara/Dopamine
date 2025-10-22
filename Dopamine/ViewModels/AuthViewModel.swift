@@ -12,6 +12,8 @@ internal import Combine
 @MainActor
 class AuthViewModel: ObservableObject {
     @Published var email = ""
+    @Published var password = ""
+    @Published var confirmPassword = ""
     @Published var otpCode: [String] = Array(repeating: "", count: 6)
     @Published var isLoading = false
     @Published var errorMessage: String?
@@ -123,12 +125,86 @@ class AuthViewModel: ObservableObject {
         await sendOTP()
     }
 
+    // MARK: - Password Authentication
+
+    func login() async {
+        guard !email.isEmpty else {
+            showErrorMessage("Please enter your email address")
+            return
+        }
+
+        guard isValidEmail(email) else {
+            showErrorMessage("Please enter a valid email address")
+            return
+        }
+
+        guard !password.isEmpty else {
+            showErrorMessage("Please enter your password")
+            return
+        }
+
+        isLoading = true
+        errorMessage = nil
+
+        do {
+            try await authService.signIn(email: email, password: password)
+            isLoading = false
+            HapticManager.notification(.success)
+        } catch {
+            isLoading = false
+            showErrorMessage(error.localizedDescription)
+            HapticManager.notification(.error)
+        }
+    }
+
+    func register() async {
+        guard !email.isEmpty else {
+            showErrorMessage("Please enter your email address")
+            return
+        }
+
+        guard isValidEmail(email) else {
+            showErrorMessage("Please enter a valid email address")
+            return
+        }
+
+        guard !password.isEmpty else {
+            showErrorMessage("Please enter a password")
+            return
+        }
+
+        guard password.count >= 6 else {
+            showErrorMessage("Password should be at least 6 characters")
+            return
+        }
+
+        guard password == confirmPassword else {
+            showErrorMessage("Passwords do not match")
+            return
+        }
+
+        isLoading = true
+        errorMessage = nil
+
+        do {
+            try await authService.signUp(email: email, password: password)
+            isLoading = false
+            HapticManager.notification(.success)
+        } catch {
+            isLoading = false
+            showErrorMessage(error.localizedDescription)
+            HapticManager.notification(.error)
+        }
+    }
+
     // MARK: - Sign Out
 
     func signOut() {
         do {
             try authService.signOut()
             email = ""
+            password = ""
+            confirmPassword = ""
             otpCode = Array(repeating: "", count: 6)
             HapticManager.notification(.success)
         } catch {
