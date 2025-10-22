@@ -9,11 +9,9 @@ import SwiftUI
 internal import Combine
 
 struct OTPVerificationView: View {
-    let email: String
+    @ObservedObject var viewModel: AuthViewModel
 
-    @State private var otpCode: [String] = Array(repeating: "", count: 6)
     @State private var timeRemaining = 60
-    @State private var isLoading = false
     @State private var moveToHome = false
     @FocusState private var focusedField: Int?
     @Environment(\.dismiss) private var dismiss
@@ -54,7 +52,7 @@ struct OTPVerificationView: View {
                             .font(.bodyRegular)
                             .foregroundColor(.adaptiveSecondary)
 
-                        Text(email)
+                        Text(viewModel.email)
                             .font(.bodySmall)
                             .foregroundColor(.adaptiveWhite)
                             .fontWeight(.semibold)
@@ -66,11 +64,13 @@ struct OTPVerificationView: View {
                     ForEach(0..<6, id: \.self) { index in
                         OTPDigitField(
                             text: Binding(
-                                get: { otpCode[index] },
+                                get: { viewModel.otpCode[index] },
                                 set: { newValue in
                                     if newValue.count <= 1 {
-                                        otpCode[index] = newValue
-                                        handleOTPInput(at: index, value: newValue)
+                                        viewModel.otpCode[index] = newValue
+                                        if let nextField = viewModel.handleOTPInput(at: index, value: newValue) {
+                                            focusedField = nextField
+                                        }
                                     }
                                 }
                             ),
@@ -94,7 +94,11 @@ struct OTPVerificationView: View {
                     } else {
                         Button("Resend") {
                             HapticManager.impact(.light)
-                            resendOTP()
+                            Task {
+                                await viewModel.resendOTP()
+                                timeRemaining = 60
+                                focusedField = 0
+                            }
                         }
                         .font(.bodySmall)
                         .foregroundColor(.adaptiveWhite)
@@ -104,8 +108,16 @@ struct OTPVerificationView: View {
                 // Verify Button
                 GlassButton(
                     title: "Verify Code",
-                    action: verifyOTP,
-                    isLoading: isLoading,
+                    action: {
+                        Task {
+                            await viewModel.verifyOTP { success in
+                                if success {
+                                    dismiss()
+                                }
+                            }
+                        }
+                    },
+                    isLoading: viewModel.isLoading,
                     isDisabled: false
                 )
                 .padding(.horizontal, 30)
@@ -120,33 +132,13 @@ struct OTPVerificationView: View {
                 timeRemaining -= 1
             }
         }
-        .fullScreenCover(isPresented: $moveToHome) {
-            MainTabView()
+        .alert("Error", isPresented: $viewModel.showError) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            if let errorMessage = viewModel.errorMessage {
+                Text(errorMessage)
+            }
         }
-    }
-
-    private func handleOTPInput(at index: Int, value: String) {
-        if value.count == 1 && index < 5 {
-            focusedField = index + 1
-        } else if value.isEmpty && index > 0 {
-            focusedField = index - 1
-        }
-    }
-
-    private func verifyOTP() {
-        isLoading = true
-        // Simulate API call
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-            isLoading = false
-            HapticManager.notification(.success)
-            moveToHome = true
-        }
-    }
-
-    private func resendOTP() {
-        timeRemaining = 60
-        otpCode = Array(repeating: "", count: 6)
-        focusedField = 0
     }
 
     private func formatTime(_ seconds: Int) -> String {
@@ -186,5 +178,5 @@ struct OTPDigitField: View {
 }
 
 #Preview {
-    OTPVerificationView(email: "sarah@example.com")
+    OTPVerificationView(viewModel: AuthViewModel())
 }
