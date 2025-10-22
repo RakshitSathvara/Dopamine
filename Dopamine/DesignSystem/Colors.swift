@@ -31,6 +31,10 @@ extension Color {
         Color(uiColor: .label)
     }
 
+    static var adaptivePrimary: Color {
+        Color(hex: "#8B5CF6")
+    }
+
     static var adaptiveSecondary: Color {
         Color(uiColor: .secondaryLabel)
     }
