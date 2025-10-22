@@ -7,6 +7,8 @@
 
 import Foundation
 import SwiftUI
+internal import Combine
+import FirebaseAuth
 
 @MainActor
 class HomeViewModel: ObservableObject {

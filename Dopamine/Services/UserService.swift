@@ -7,6 +7,7 @@
 
 import Foundation
 import FirebaseFirestore
+internal import Combine
 
 @MainActor
 class UserService: ObservableObject {

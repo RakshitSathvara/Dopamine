@@ -66,11 +66,30 @@ struct OTPVerificationView: View {
                             text: Binding(
                                 get: { viewModel.otpCode[index] },
                                 set: { newValue in
-                                    if newValue.count <= 1 {
-                                        viewModel.otpCode[index] = newValue
-                                        if let nextField = viewModel.handleOTPInput(at: index, value: newValue) {
-                                            focusedField = nextField
+                                    let oldValue = viewModel.otpCode[index]
+                                    
+                                    // Handle paste of full OTP code
+                                    if newValue.count > 1 {
+                                        let digits = newValue.filter { $0.isNumber }
+                                        let digitsArray = Array(digits.prefix(6))
+                                        for (i, digit) in digitsArray.enumerated() {
+                                            if i < 6 {
+                                                viewModel.otpCode[i] = String(digit)
+                                            }
                                         }
+                                        focusedField = min(digitsArray.count, 5)
+                                        return
+                                    }
+                                    
+                                    viewModel.otpCode[index] = newValue
+                                    
+                                    // Auto-advance to next field when digit is entered
+                                    if !newValue.isEmpty && newValue != oldValue && index < 5 {
+                                        focusedField = index + 1
+                                    }
+                                    // Auto-go back when deleted
+                                    else if newValue.isEmpty && oldValue != newValue && index > 0 {
+                                        focusedField = index - 1
                                     }
                                 }
                             ),
@@ -165,6 +184,15 @@ struct OTPDigitField: View {
                 .foregroundColor(.adaptiveWhite)
                 .frame(height: 56)
                 .background(Color.clear)
+                .onChange(of: text) { oldValue, newValue in
+                    // Only allow digits and limit to 1 character
+                    let filtered = newValue.filter { $0.isNumber }
+                    if filtered.count > 1 {
+                        text = String(filtered.prefix(1))
+                    } else if filtered != newValue {
+                        text = filtered
+                    }
+                }
         }
         .overlay(
             RoundedRectangle(cornerRadius: 12, style: .continuous)

@@ -30,7 +30,12 @@ struct ActivityTypeChip: View {
             .padding(.vertical, 8)
             .background(
                 RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .fill(isSelected ? Color.accentColor : .ultraThinMaterial)
+                    .fill(isSelected ? Color.accentColor.opacity(1) : Color.clear)
+                    .background(
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            .fill(.ultraThinMaterial)
+                            .opacity(isSelected ? 0 : 1)
+                    )
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 20, style: .continuous)

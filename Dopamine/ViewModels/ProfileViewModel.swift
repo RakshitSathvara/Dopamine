@@ -7,6 +7,8 @@
 
 import Foundation
 import SwiftUI
+internal import Combine
+import FirebaseAuth
 
 @MainActor
 class ProfileViewModel: ObservableObject {
@@ -155,7 +157,7 @@ class ProfileViewModel: ObservableObject {
 
     func deleteOrder(_ orderId: String) async {
         do {
-            try await orderService.deleteOrder(orderId)
+            try await orderService.deleteOrder(orderId: orderId)
             await loadOrders()
             HapticManager.notification(.success)
         } catch {

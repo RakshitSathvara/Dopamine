@@ -7,8 +7,8 @@
 
 import Foundation
 import FirebaseFirestore
+internal import Combine
 
-@MainActor
 class OrderService: ObservableObject {
     static let shared = OrderService()
 

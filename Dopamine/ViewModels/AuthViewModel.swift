@@ -7,7 +7,7 @@
 
 import Foundation
 import SwiftUI
-import Combine
+internal import Combine
 
 @MainActor
 class AuthViewModel: ObservableObject {
@@ -95,7 +95,7 @@ class AuthViewModel: ObservableObject {
     // MARK: - Verify Email Link
 
     func verifyEmailLink(link: String) async {
-        guard !email.isEmpty else {
+        if email.isEmpty {
             // Try to get saved email
             if let savedEmail = UserDefaults.standard.string(forKey: "EmailForSignIn") {
                 email = savedEmail

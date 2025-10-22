@@ -7,7 +7,7 @@
 
 import Foundation
 import FirebaseAuth
-import Combine
+internal import Combine
 
 enum AuthError: LocalizedError {
     case invalidEmail
@@ -79,7 +79,9 @@ class AuthService: ObservableObject {
         }
 
         let actionCodeSettings = ActionCodeSettings()
-        actionCodeSettings.url = URL(string: "https://dopamine.app/finishSignUp")
+        // Use localhost for development - it's pre-authorized in Firebase
+        // For production, add your domain to Firebase Console → Authentication → Settings → Authorized domains
+        actionCodeSettings.url = URL(string: "http://localhost/finishSignUp?email=\(email)")
         actionCodeSettings.handleCodeInApp = true
         actionCodeSettings.setIOSBundleID(Bundle.main.bundleIdentifier ?? "com.dopamine.app")
 

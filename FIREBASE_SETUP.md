@@ -164,8 +164,13 @@ For email link authentication to work properly:
 
 1. In Firebase Console, go to **Authentication → Settings**
 2. Scroll to **Authorized domains**
-3. Add your app's domain (if you have a custom domain)
-4. For testing, `localhost` should already be authorized
+3. Verify that `localhost` is in the list (it should be by default)
+   - The app currently uses `http://localhost` for development
+   - This avoids the "Domain not allowlisted" error
+4. For production: Add your custom domain (e.g., `dopamine.app`)
+   - Click **Add domain**
+   - Enter your domain name
+   - Click **Add**
 
 ## Step 10: Build and Run
 
