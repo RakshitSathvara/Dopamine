@@ -6,15 +6,27 @@
 //
 
 import SwiftUI
+import FirebaseCore
 
 @main
 struct DopamineApp: App {
     @StateObject private var themeManager = ThemeManager.shared
+    @StateObject private var authService = AuthService.shared
+
+    init() {
+        // Configure Firebase
+        FirebaseManager.shared.configure()
+    }
 
     var body: some Scene {
         WindowGroup {
-            MainTabView()
-                .preferredColorScheme(themeManager.currentTheme.colorScheme)
+            if authService.isAuthenticated {
+                MainTabView()
+                    .preferredColorScheme(themeManager.currentTheme.colorScheme)
+            } else {
+                SplashView()
+                    .preferredColorScheme(themeManager.currentTheme.colorScheme)
+            }
         }
     }
 }

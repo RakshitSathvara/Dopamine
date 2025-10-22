@@ -8,8 +8,7 @@
 import SwiftUI
 
 struct LoginView: View {
-    @State private var email = ""
-    @State private var isLoading = false
+    @StateObject private var viewModel = AuthViewModel()
     @State private var showOTPView = false
     @Environment(\.dismiss) private var dismiss
 
@@ -32,7 +31,7 @@ struct LoginView: View {
                 VStack(spacing: 20) {
                     // Email Input
                     GlassTextField(
-                        text: $email,
+                        text: $viewModel.email,
                         placeholder: "Email Address",
                         icon: "envelope.fill"
                     )
@@ -46,9 +45,14 @@ struct LoginView: View {
                         title: "Send OTP Code",
                         action: {
                             HapticManager.impact(.medium)
-                            sendOTP()
+                            Task {
+                                await viewModel.sendOTP()
+                                if !viewModel.showError {
+                                    showOTPView = true
+                                }
+                            }
                         },
-                        isLoading: isLoading,
+                        isLoading: viewModel.isLoading,
                         isDisabled: false
                     )
                 }
@@ -82,17 +86,14 @@ struct LoginView: View {
                 .padding(.bottom, 20)
         }
         .fullScreenCover(isPresented: $showOTPView) {
-            OTPVerificationView(email: email)
+            OTPVerificationView(viewModel: viewModel)
         }
-    }
-
-    private func sendOTP() {
-        isLoading = true
-        // Simulate API call
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-            isLoading = false
-            HapticManager.notification(.success)
-            showOTPView = true
+        .alert("Error", isPresented: $viewModel.showError) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            if let errorMessage = viewModel.errorMessage {
+                Text(errorMessage)
+            }
         }
     }
 }
