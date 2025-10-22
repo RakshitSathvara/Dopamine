@@ -185,33 +185,104 @@ class AuthService: ObservableObject {
 
     // MARK: - Custom OTP (Backend Integration)
 
-    // If you have a custom backend that sends OTP via email
+    // Generate and send OTP for email authentication
     func sendCustomOTP(email: String) async throws {
-        // TODO: Implement custom backend OTP send
-        // This would call your backend API to send OTP via email
         guard isValidEmail(email) else {
             throw AuthError.invalidEmail
         }
 
-        // Simulate OTP send
-        try await Task.sleep(nanoseconds: 1_000_000_000)
-        print("Custom OTP sent to: \(email)")
+        // Generate 6-digit OTP
+        let otp = generateOTP()
+
+        // Save OTP and email for verification
+        let otpData: [String: Any] = [
+            "otp": otp,
+            "email": email,
+            "timestamp": Date().timeIntervalSince1970
+        ]
+        UserDefaults.standard.set(otpData, forKey: "PendingOTP")
+
+        // In production, send OTP via email using your backend
+        // For development, print it to console
+        print("📧 OTP Code for \(email): \(otp)")
+        print("💡 For testing, you can also use: 123456")
+
+        // Simulate network delay
+        try await Task.sleep(nanoseconds: 500_000_000)
     }
 
     func verifyCustomOTP(email: String, code: String) async throws {
-        // TODO: Implement custom backend OTP verification
-        // This would:
-        // 1. Verify OTP with your backend
-        // 2. Get custom token from backend
-        // 3. Sign in with custom token
+        // Accept universal test code
+        if code == "123456" {
+            print("✅ Using test OTP code")
+            try await signInOrCreateUser(email: email)
+            return
+        }
 
-        // Example implementation:
-        // let customToken = try await getCustomToken(email: email, code: code)
-        // let result = try await Auth.auth().signIn(withCustomToken: customToken)
+        // Verify against saved OTP
+        guard let otpData = UserDefaults.standard.dictionary(forKey: "PendingOTP"),
+              let savedOTP = otpData["otp"] as? String,
+              let savedEmail = otpData["email"] as? String,
+              let timestamp = otpData["timestamp"] as? TimeInterval else {
+            throw AuthError.verificationFailed
+        }
 
-        // For now, simulate verification
-        try await Task.sleep(nanoseconds: 1_000_000_000)
-        print("Custom OTP verified for: \(email)")
+        // Check if OTP is expired (5 minutes)
+        let expirationTime: TimeInterval = 5 * 60
+        if Date().timeIntervalSince1970 - timestamp > expirationTime {
+            UserDefaults.standard.removeObject(forKey: "PendingOTP")
+            throw AuthError.unknown("OTP code has expired. Please request a new one.")
+        }
+
+        // Verify email and OTP match
+        guard email == savedEmail, code == savedOTP else {
+            throw AuthError.verificationFailed
+        }
+
+        // Clear OTP data
+        UserDefaults.standard.removeObject(forKey: "PendingOTP")
+
+        // Sign in or create user
+        try await signInOrCreateUser(email: email)
+    }
+
+    // MARK: - Helper Methods for OTP
+
+    private func generateOTP() -> String {
+        let otp = Int.random(in: 100000...999999)
+        return String(otp)
+    }
+
+    private func signInOrCreateUser(email: String) async throws {
+        // For OTP-based auth, we'll use a fixed password derived from the email
+        // In production, you might want to use Firebase Custom Auth or Anonymous auth
+        let password = "OTP_AUTH_\(email.hash)"
+
+        do {
+            // Try to sign in first
+            let result = try await Auth.auth().signIn(withEmail: email, password: password)
+            currentUser = result.user
+            print("✅ User signed in: \(result.user.uid)")
+        } catch let error as NSError {
+            // If user doesn't exist, create account
+            if error.code == AuthErrorCode.userNotFound.rawValue ||
+               error.code == AuthErrorCode.wrongPassword.rawValue {
+                do {
+                    let result = try await Auth.auth().createUser(withEmail: email, password: password)
+                    currentUser = result.user
+
+                    // Create user profile for new user
+                    try await UserService.shared.createUserProfile(userId: result.user.uid, email: email)
+                    print("✅ New user created: \(result.user.uid)")
+                } catch {
+                    print("❌ Error creating user: \(error.localizedDescription)")
+                    throw AuthError.unknown("Failed to create user account")
+                }
+            } else {
+                print("❌ Error signing in: \(error.localizedDescription)")
+                throw AuthError.verificationFailed
+            }
+        }
     }
 
     // MARK: - Sign Out

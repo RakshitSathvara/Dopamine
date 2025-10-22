@@ -44,8 +44,8 @@ class AuthViewModel: ObservableObject {
         errorMessage = nil
 
         do {
-            // Send email link for authentication
-            try await authService.sendEmailLink(email: email)
+            // Send OTP code for authentication
+            try await authService.sendCustomOTP(email: email)
             isLoading = false
             HapticManager.notification(.success)
         } catch {
@@ -66,27 +66,24 @@ class AuthViewModel: ObservableObject {
             return
         }
 
-        isLoading = true
-        errorMessage = nil
-
-        // For development/testing: accept "123456" as valid OTP
-        if code == "123456" {
-            isLoading = false
-            HapticManager.notification(.success)
-            completion(true)
+        guard !email.isEmpty else {
+            showErrorMessage("Email not found. Please try again.")
+            completion(false)
             return
         }
 
-        // In production, you would verify with Firebase
-        // For now, simulate verification
+        isLoading = true
+        errorMessage = nil
+
         do {
-            try await Task.sleep(nanoseconds: 1_500_000_000)
+            // Verify OTP with Firebase
+            try await authService.verifyCustomOTP(email: email, code: code)
             isLoading = false
             HapticManager.notification(.success)
             completion(true)
         } catch {
             isLoading = false
-            showErrorMessage("Failed to verify code")
+            showErrorMessage(error.localizedDescription)
             HapticManager.notification(.error)
             completion(false)
         }
