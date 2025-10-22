@@ -8,88 +8,112 @@
 import SwiftUI
 
 struct HomeView: View {
-    @State private var activities: [Activity] = [
-        Activity.sampleActivities[2], // Morning Meditation
-        Activity.sampleActivities[3], // Deep Work Session
-        Activity.sampleActivities[9]  // Evening Reading
-    ]
-    @State private var selectedActivities: Set<String> = []
-    @State private var cart: [Activity] = []
-    @State private var user = User.sample
+    @StateObject private var viewModel = HomeViewModel()
+    @StateObject private var authViewModel = AuthViewModel()
     @State private var showToast = false
+    @State private var userName: String = ""
+    @State private var currentStreak: Int = 0
 
     var body: some View {
         NavigationStack {
             ZStack {
-                VStack(spacing: 0) {
-                    // Header
-                    HomeHeader(
-                        userName: user.name,
-                        streak: user.statistics.currentStreak
-                    )
-                    .padding(.horizontal, 20)
-                    .padding(.top, 16)
-
-                    // Activity List
-                    ScrollView {
-                        LazyVStack(spacing: 16) {
-                            ForEach(Array(activities.enumerated()), id: \.element.id) { index, activity in
-                                ActivityCard(
-                                    activity: activity,
-                                    isSelected: selectedActivities.contains(activity.id),
-                                    onToggle: {
-                                        toggleSelection(activity.id)
-                                    }
-                                )
-                                .transition(.asymmetric(
-                                    insertion: .scale.combined(with: .opacity),
-                                    removal: .scale.combined(with: .opacity)
-                                ))
+                if viewModel.isLoading && viewModel.activities.isEmpty {
+                    // Loading State
+                    ProgressView()
+                        .progressViewStyle(CircularProgressViewStyle(tint: .adaptiveWhite))
+                        .scaleEffect(1.5)
+                } else if viewModel.activities.isEmpty {
+                    // Empty State
+                    EmptyStateView(
+                        icon: "tray",
+                        title: "No Activities",
+                        message: "No activities found. Please check your connection or try again later.",
+                        actionTitle: "Retry",
+                        action: {
+                            Task {
+                                await viewModel.refresh()
                             }
-
-                            // Explore More Button
-                            NavigationLink {
-                                MenuView(cart: $cart)
-                            } label: {
-                                HStack {
-                                    Text("Explore Menu")
-                                        .font(.bodyLarge)
-                                        .fontWeight(.semibold)
-
-                                    Image(systemName: "arrow.right")
-                                }
-                                .foregroundColor(.adaptiveWhite)
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(
-                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                        .fill(.ultraThinMaterial)
-                                )
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                        .stroke(Color.borderLight, lineWidth: 1)
-                                )
-                            }
-                            .padding(.vertical, 24)
                         }
-                        .padding(.horizontal, 20)
-                        .padding(.top, 24)
-                        .padding(.bottom, 100)
-                    }
-                }
-
-                // Add to Cart Button (Fixed at bottom)
-                if !selectedActivities.isEmpty {
-                    VStack {
-                        Spacer()
-                        GlassButton(
-                            title: "Add to Cart (\(selectedActivities.count))",
-                            icon: "cart.badge.plus",
-                            action: addToCart
+                    )
+                } else {
+                    VStack(spacing: 0) {
+                        // Header
+                        HomeHeader(
+                            userName: userName,
+                            streak: currentStreak
                         )
                         .padding(.horizontal, 20)
-                        .padding(.bottom, 16)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .padding(.top, 16)
+
+                        // Activity List
+                        ScrollView {
+                            LazyVStack(spacing: 16) {
+                                ForEach(viewModel.activities.prefix(5)) { activity in
+                                    ActivityCard(
+                                        activity: activity,
+                                        isSelected: viewModel.isActivitySelected(activity.id),
+                                        onToggle: {
+                                            viewModel.toggleActivitySelection(activity.id)
+                                        }
+                                    )
+                                    .transition(.asymmetric(
+                                        insertion: .scale.combined(with: .opacity),
+                                        removal: .scale.combined(with: .opacity)
+                                    ))
+                                }
+
+                                // Explore More Button
+                                NavigationLink {
+                                    MenuView()
+                                } label: {
+                                    HStack {
+                                        Text("Explore All Activities")
+                                            .font(.bodyLarge)
+                                            .fontWeight(.semibold)
+
+                                        Image(systemName: "arrow.right")
+                                    }
+                                    .foregroundColor(.adaptiveWhite)
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                            .fill(.ultraThinMaterial)
+                                    )
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                            .stroke(Color.borderLight, lineWidth: 1)
+                                    )
+                                }
+                                .padding(.vertical, 24)
+                            }
+                            .padding(.horizontal, 20)
+                            .padding(.top, 24)
+                            .padding(.bottom, 100)
+                        }
+                    }
+
+                    // Add to Cart Button (Fixed at bottom)
+                    if !viewModel.selectedActivities.isEmpty {
+                        VStack {
+                            Spacer()
+                            GlassButton(
+                                title: "Add to Cart (\(viewModel.selectedActivities.count))",
+                                icon: "cart.badge.plus",
+                                action: {
+                                    Task {
+                                        await viewModel.addSelectedToCart()
+                                        showToast = true
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                                            showToast = false
+                                        }
+                                    }
+                                }
+                            )
+                            .padding(.horizontal, 20)
+                            .padding(.bottom, 16)
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                        }
                     }
                 }
             }
@@ -98,32 +122,23 @@ struct HomeView: View {
                 ToastView(message: "Added to cart!", isShowing: $showToast)
                     .animation(.spring(), value: showToast)
             )
-        }
-    }
-
-    private func toggleSelection(_ id: String) {
-        HapticManager.impact(.light)
-        withAnimation(.spring()) {
-            if selectedActivities.contains(id) {
-                selectedActivities.remove(id)
-            } else {
-                selectedActivities.insert(id)
+            .task {
+                // Load user data
+                if let userId = authViewModel.currentUser?.uid {
+                    do {
+                        let user = try await UserService.shared.fetchUserProfile(userId: userId)
+                        userName = user.name
+                        currentStreak = user.statistics.currentStreak
+                    } catch {
+                        print("Error loading user: \(error)")
+                        userName = "User"
+                        currentStreak = 0
+                    }
+                } else {
+                    userName = "Guest"
+                    currentStreak = 0
+                }
             }
-        }
-    }
-
-    private func addToCart() {
-        HapticManager.notification(.success)
-        let activitiesToAdd = activities.filter { selectedActivities.contains($0.id) }
-        cart.append(contentsOf: activitiesToAdd)
-
-        withAnimation(.spring()) {
-            selectedActivities.removeAll()
-        }
-
-        showToast = true
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-            showToast = false
         }
     }
 }

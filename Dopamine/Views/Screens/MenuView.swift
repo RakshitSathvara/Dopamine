@@ -8,83 +8,120 @@
 import SwiftUI
 
 struct MenuView: View {
-    @State private var expandedCategories: Set<ActivityCategory> = [.starters]
-    @State private var searchText = ""
-    @Binding var cart: [Activity]
+    @StateObject private var viewModel = MenuViewModel()
     @State private var showToast = false
     @State private var toastMessage = ""
-    @State private var activities: [Activity] = Activity.sampleActivities
     @State private var showingAddActivity = false
     @State private var selectedCategory: ActivityCategory = .starters
 
     var filteredActivities: [Activity] {
-        if searchText.isEmpty {
-            return activities
-        } else {
-            return activities.filter {
-                $0.name.localizedCaseInsensitiveContains(searchText) ||
-                $0.description.localizedCaseInsensitiveContains(searchText)
-            }
-        }
-    }
-
-    func activities(for category: ActivityCategory) -> [Activity] {
-        activities.filter { $0.category == category }
+        viewModel.filteredActivities
     }
 
     var body: some View {
         VStack(spacing: 0) {
-                // Search Bar
-                GlassTextField(
-                    text: $searchText,
-                    placeholder: "Search activities...",
-                    icon: "magnifyingglass"
-                )
-                .padding(.horizontal, 20)
-                .padding(.vertical, 16)
-
-                // Categories List
-                ScrollView {
-                    LazyVStack(spacing: 20) {
-                        if searchText.isEmpty {
-                            ForEach(ActivityCategory.allCases, id: \.self) { category in
-                                CategorySection(
-                                    category: category,
-                                    activities: activities(for: category),
-                                    isExpanded: expandedCategories.contains(category),
-                                    onToggle: {
-                                        toggleCategory(category)
-                                    },
-                                    onAddToCart: { activity in
-                                        addToCart(activity)
-                                    },
-                                    onAddActivity: {
-                                        selectedCategory = category
-                                        showingAddActivity = true
-                                    },
-                                    onRemoveActivity: { activity in
-                                        removeActivity(activity)
-                                    }
-                                )
-                            }
-                        } else {
-                            // Show filtered results
-                            ForEach(filteredActivities) { activity in
-                                MenuActivityCard(
-                                    activity: activity,
-                                    onAdd: {
-                                        addToCart(activity)
-                                    },
-                                    onRemove: {
-                                        removeActivity(activity)
-                                    }
-                                )
-                            }
+            if viewModel.isLoading && viewModel.activities.isEmpty {
+                // Loading State
+                ProgressView()
+                    .progressViewStyle(CircularProgressViewStyle(tint: .adaptiveWhite))
+                    .scaleEffect(1.5)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if viewModel.activities.isEmpty {
+                // Empty State
+                EmptyStateView(
+                    icon: "list.bullet.rectangle",
+                    title: "No Activities Available",
+                    message: "There are no activities to display. Please check your connection or try again later.",
+                    actionTitle: "Retry",
+                    action: {
+                        Task {
+                            await viewModel.refresh()
                         }
                     }
+                )
+            } else {
+                VStack(spacing: 0) {
+                    // Search Bar
+                    GlassTextField(
+                        text: $viewModel.searchQuery,
+                        placeholder: "Search activities...",
+                        icon: "magnifyingglass"
+                    )
                     .padding(.horizontal, 20)
-                    .padding(.bottom, 24)
+                    .padding(.vertical, 16)
+
+                    // Categories List
+                    ScrollView {
+                        LazyVStack(spacing: 20) {
+                            if viewModel.searchQuery.isEmpty {
+                                ForEach(ActivityCategory.allCases, id: \.self) { category in
+                                    let categoryActivities = viewModel.activitiesForCategory(category)
+                                    if !categoryActivities.isEmpty {
+                                        CategorySection(
+                                            category: category,
+                                            activities: categoryActivities,
+                                            isExpanded: viewModel.isCategoryExpanded(category),
+                                            onToggle: {
+                                                viewModel.toggleCategory(category)
+                                            },
+                                            onAddToCart: { activity in
+                                                Task {
+                                                    await addToCart(activity)
+                                                }
+                                            },
+                                            onAddActivity: {
+                                                selectedCategory = category
+                                                showingAddActivity = true
+                                            },
+                                            onRemoveActivity: { activity in
+                                                // Remove functionality - would need Firebase implementation
+                                                toastMessage = "Activity management coming soon"
+                                                showToast = true
+                                                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                                                    showToast = false
+                                                }
+                                            }
+                                        )
+                                    }
+                                }
+                            } else {
+                                // Show filtered results
+                                if filteredActivities.isEmpty {
+                                    EmptyStateView(
+                                        icon: "magnifyingglass",
+                                        title: "No Results",
+                                        message: "No activities found matching '\(viewModel.searchQuery)'. Try a different search.",
+                                        actionTitle: nil,
+                                        action: nil
+                                    )
+                                    .frame(height: 400)
+                                } else {
+                                    ForEach(filteredActivities) { activity in
+                                        MenuActivityCard(
+                                            activity: activity,
+                                            onAdd: {
+                                                Task {
+                                                    await addToCart(activity)
+                                                }
+                                            },
+                                            onRemove: {
+                                                // Remove functionality - would need Firebase implementation
+                                                toastMessage = "Activity management coming soon"
+                                                showToast = true
+                                                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                                                    showToast = false
+                                                }
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 24)
+                    }
                 }
+            }
         }
         .navigationTitle("Browse Activities")
         .navigationBarTitleDisplayMode(.inline)
@@ -103,20 +140,8 @@ struct MenuView: View {
         }
     }
 
-    private func toggleCategory(_ category: ActivityCategory) {
-        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-            if expandedCategories.contains(category) {
-                expandedCategories.remove(category)
-            } else {
-                expandedCategories.insert(category)
-            }
-        }
-        HapticManager.impact(.light)
-    }
-
-    private func addToCart(_ activity: Activity) {
-        HapticManager.notification(.success)
-        cart.append(activity)
+    private func addToCart(_ activity: Activity) async {
+        await viewModel.addToCart(activity.id)
         toastMessage = "Added \(activity.name) to cart!"
         showToast = true
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
@@ -125,34 +150,8 @@ struct MenuView: View {
     }
 
     private func addNewActivity(name: String, duration: Int, category: ActivityCategory, activityType: ActivityType?) {
-        let newActivity = Activity(
-            id: UUID().uuidString,
-            name: name,
-            description: "Custom activity",
-            category: category,
-            duration: duration,
-            difficulty: .easy,
-            benefits: ["Custom"],
-            icon: "⭐",
-            activityType: activityType
-        )
-        withAnimation {
-            activities.append(newActivity)
-        }
-        HapticManager.notification(.success)
-        toastMessage = "Added \(name) to \(category.displayName)!"
-        showToast = true
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-            showToast = false
-        }
-    }
-
-    private func removeActivity(_ activity: Activity) {
-        withAnimation {
-            activities.removeAll { $0.id == activity.id }
-        }
-        HapticManager.impact(.medium)
-        toastMessage = "Removed \(activity.name)"
+        // This would need to be implemented in Firebase
+        toastMessage = "Custom activity creation coming soon!"
         showToast = true
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
             showToast = false

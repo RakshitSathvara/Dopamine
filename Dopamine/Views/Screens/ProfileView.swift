@@ -8,27 +8,42 @@
 import SwiftUI
 
 struct ProfileView: View {
-    @State private var user = User.sample
-    @State private var cartItems: [Activity] = [
-        Activity.sampleActivities[2], // Morning Meditation
-        Activity.sampleActivities[3]  // Deep Work Session
-    ]
-    @State private var orders = Order.sampleOrders
-    @State private var showToast = false
+    @StateObject private var viewModel = ProfileViewModel()
     @StateObject private var themeManager = ThemeManager.shared
     @State private var showThemeSelector = false
-
-    var totalDuration: Int {
-        cartItems.reduce(0) { $0 + $1.duration }
-    }
+    @State private var cartActivities: [Activity] = []
 
     var body: some View {
         NavigationStack {
             ScrollView {
+                if viewModel.isLoading && viewModel.user == nil {
+                    // Loading State
+                    ProgressView()
+                        .progressViewStyle(CircularProgressViewStyle(tint: .adaptiveWhite))
+                        .scaleEffect(1.5)
+                        .frame(maxWidth: .infinity)
+                        .padding(.top, 100)
+                } else {
                     VStack(spacing: 24) {
                         // Profile Header
-                        ProfileHeader(user: user)
-                            .padding(.horizontal, 20)
+                        if let user = viewModel.user {
+                            ProfileHeader(user: user)
+                                .padding(.horizontal, 20)
+                        } else {
+                            // User profile loading failed
+                            EmptyStateView(
+                                icon: "person.crop.circle.badge.exclamationmark",
+                                title: "Profile Not Found",
+                                message: "Unable to load your profile. Please try again.",
+                                actionTitle: "Retry",
+                                action: {
+                                    Task {
+                                        await viewModel.refresh()
+                                    }
+                                }
+                            )
+                            .frame(height: 300)
+                        }
 
                         // Theme Selector
                         ThemeSelectorCard(
@@ -38,21 +53,25 @@ struct ProfileView: View {
                         .padding(.horizontal, 20)
 
                         // Cart Section
-                        if !cartItems.isEmpty {
-                            VStack(alignment: .leading, spacing: 16) {
-                                Text("Your Cart")
-                                    .font(.h2)
-                                    .foregroundColor(.adaptiveWhite)
-                                    .padding(.horizontal, 20)
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("Your Cart")
+                                .font(.h2)
+                                .foregroundColor(.adaptiveWhite)
+                                .padding(.horizontal, 20)
 
+                            if let cart = viewModel.cart, !cart.items.isEmpty {
                                 VStack(spacing: 12) {
-                                    ForEach(cartItems) { activity in
-                                        CartItemCard(
-                                            activity: activity,
-                                            onRemove: {
-                                                removeFromCart(activity)
-                                            }
-                                        )
+                                    ForEach(cart.items) { cartItem in
+                                        if let activity = cartActivities.first(where: { $0.id == cartItem.activityId }) {
+                                            CartItemCard(
+                                                activity: activity,
+                                                onRemove: {
+                                                    Task {
+                                                        await viewModel.removeFromCart(cartItem.id)
+                                                    }
+                                                }
+                                            )
+                                        }
                                     }
                                 }
                                 .padding(.horizontal, 20)
@@ -66,7 +85,7 @@ struct ProfileView: View {
 
                                         Spacer()
 
-                                        Text("\(totalDuration) minutes")
+                                        Text("\(cartActivities.reduce(0) { $0 + $1.duration }) minutes")
                                             .font(.h3)
                                             .foregroundColor(.adaptiveWhite)
                                             .fontWeight(.bold)
@@ -76,10 +95,25 @@ struct ProfileView: View {
                                     GlassButton(
                                         title: "Place Order",
                                         icon: "checkmark.circle.fill",
-                                        action: placeOrder
+                                        action: {
+                                            Task {
+                                                await viewModel.placeOrder()
+                                            }
+                                        },
+                                        isLoading: viewModel.isLoading
                                     )
                                     .padding(.horizontal, 20)
                                 }
+                            } else {
+                                EmptyStateView(
+                                    icon: "cart.badge.questionmark",
+                                    title: "Cart is Empty",
+                                    message: "Add activities from the menu to get started!",
+                                    actionTitle: nil,
+                                    action: nil
+                                )
+                                .frame(height: 200)
+                                .padding(.horizontal, 20)
                             }
                         }
 
@@ -90,17 +124,30 @@ struct ProfileView: View {
                                 .foregroundColor(.adaptiveWhite)
                                 .padding(.horizontal, 20)
 
-                            VStack(spacing: 12) {
-                                ForEach(orders) { order in
-                                    OrderCard(order: order)
+                            if viewModel.orders.isEmpty {
+                                EmptyStateView(
+                                    icon: "clock.badge.questionmark",
+                                    title: "No Orders Yet",
+                                    message: "Your order history will appear here once you place your first order.",
+                                    actionTitle: nil,
+                                    action: nil
+                                )
+                                .frame(height: 200)
+                                .padding(.horizontal, 20)
+                            } else {
+                                VStack(spacing: 12) {
+                                    ForEach(viewModel.orders) { order in
+                                        OrderCard(order: order)
+                                    }
                                 }
+                                .padding(.horizontal, 20)
                             }
-                            .padding(.horizontal, 20)
                         }
                         .padding(.top, 24)
                     }
                     .padding(.top, 16)
                     .padding(.bottom, 100)
+                }
             }
             .navigationTitle("Profile")
             .navigationBarTitleDisplayMode(.inline)
@@ -116,49 +163,44 @@ struct ProfileView: View {
                 }
             }
             .overlay(
-                ToastView(message: "Order placed successfully!", isShowing: $showToast)
-                    .animation(.spring(), value: showToast)
+                Group {
+                    if viewModel.showSuccessMessage {
+                        ToastView(message: viewModel.successMessage, isShowing: .constant(true))
+                            .animation(.spring(), value: viewModel.showSuccessMessage)
+                    }
+                }
             )
-        }
-    }
-
-    private func removeFromCart(_ activity: Activity) {
-        HapticManager.impact(.medium)
-        withAnimation(.spring()) {
-            cartItems.removeAll { $0.id == activity.id }
-        }
-    }
-
-    private func placeOrder() {
-        HapticManager.notification(.success)
-
-        // Create new order from cart items
-        let newOrder = Order(
-            id: UUID().uuidString,
-            userId: user.id,
-            items: cartItems.map { activity in
-                OrderItem(
-                    id: UUID().uuidString,
-                    activityId: activity.id,
-                    activityName: activity.name,
-                    duration: activity.duration,
-                    isCompleted: false,
-                    completedAt: nil
-                )
-            },
-            status: .active,
-            createdAt: Date(),
-            completedAt: nil
-        )
-
-        withAnimation(.spring()) {
-            orders.insert(newOrder, at: 0)
-            cartItems.removeAll()
-        }
-
-        showToast = true
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-            showToast = false
+            .task {
+                // Load cart item activities
+                if let cart = viewModel.cart {
+                    for cartItem in cart.items {
+                        do {
+                            if let activity = try await ActivityService.shared.getActivity(by: cartItem.activityId) {
+                                cartActivities.append(activity)
+                            }
+                        } catch {
+                            print("Error loading cart activity: \(error)")
+                        }
+                    }
+                }
+            }
+            .onChange(of: viewModel.cart) { oldValue, newValue in
+                // Reload cart activities when cart changes
+                Task {
+                    cartActivities.removeAll()
+                    if let cart = newValue {
+                        for cartItem in cart.items {
+                            do {
+                                if let activity = try await ActivityService.shared.getActivity(by: cartItem.activityId) {
+                                    cartActivities.append(activity)
+                                }
+                            } catch {
+                                print("Error loading cart activity: \(error)")
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }
