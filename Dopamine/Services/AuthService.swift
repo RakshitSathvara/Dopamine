@@ -15,6 +15,10 @@ enum AuthError: LocalizedError {
     case verificationFailed
     case userNotFound
     case networkError
+    case weakPassword
+    case emailAlreadyInUse
+    case wrongPassword
+    case invalidCredentials
     case unknown(String)
 
     var errorDescription: String? {
@@ -29,6 +33,14 @@ enum AuthError: LocalizedError {
             return "User not found. Please sign up first."
         case .networkError:
             return "Network error. Please check your connection."
+        case .weakPassword:
+            return "Password should be at least 6 characters"
+        case .emailAlreadyInUse:
+            return "This email is already registered. Please login instead."
+        case .wrongPassword:
+            return "Incorrect password. Please try again."
+        case .invalidCredentials:
+            return "Invalid email or password"
         case .unknown(let message):
             return message
         }
@@ -281,6 +293,71 @@ class AuthService: ObservableObject {
             } else {
                 print("❌ Error signing in: \(error.localizedDescription)")
                 throw AuthError.verificationFailed
+            }
+        }
+    }
+
+    // MARK: - Password Authentication
+
+    func signUp(email: String, password: String) async throws {
+        guard isValidEmail(email) else {
+            throw AuthError.invalidEmail
+        }
+
+        guard password.count >= 6 else {
+            throw AuthError.weakPassword
+        }
+
+        do {
+            let result = try await Auth.auth().createUser(withEmail: email, password: password)
+            currentUser = result.user
+
+            // Create user profile for new user
+            try await UserService.shared.createUserProfile(userId: result.user.uid, email: email)
+            print("✅ New user created: \(result.user.uid)")
+        } catch let error as NSError {
+            print("❌ Error creating user: \(error.localizedDescription)")
+
+            // Handle specific Firebase errors
+            if error.code == AuthErrorCode.emailAlreadyInUse.rawValue {
+                throw AuthError.emailAlreadyInUse
+            } else if error.code == AuthErrorCode.weakPassword.rawValue {
+                throw AuthError.weakPassword
+            } else if error.code == AuthErrorCode.invalidEmail.rawValue {
+                throw AuthError.invalidEmail
+            } else {
+                throw AuthError.unknown(error.localizedDescription)
+            }
+        }
+    }
+
+    func signIn(email: String, password: String) async throws {
+        guard isValidEmail(email) else {
+            throw AuthError.invalidEmail
+        }
+
+        guard !password.isEmpty else {
+            throw AuthError.unknown("Please enter your password")
+        }
+
+        do {
+            let result = try await Auth.auth().signIn(withEmail: email, password: password)
+            currentUser = result.user
+            print("✅ User signed in: \(result.user.uid)")
+        } catch let error as NSError {
+            print("❌ Error signing in: \(error.localizedDescription)")
+
+            // Handle specific Firebase errors
+            if error.code == AuthErrorCode.userNotFound.rawValue {
+                throw AuthError.userNotFound
+            } else if error.code == AuthErrorCode.wrongPassword.rawValue {
+                throw AuthError.wrongPassword
+            } else if error.code == AuthErrorCode.invalidEmail.rawValue {
+                throw AuthError.invalidEmail
+            } else if error.code == AuthErrorCode.invalidCredential.rawValue {
+                throw AuthError.invalidCredentials
+            } else {
+                throw AuthError.unknown(error.localizedDescription)
             }
         }
     }

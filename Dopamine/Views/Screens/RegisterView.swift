@@ -1,15 +1,14 @@
 //
-//  LoginView.swift
+//  RegisterView.swift
 //  Dopamine
 //
-//  Created by Rakshit on 21/10/25.
+//  Created by Rakshit on 22/10/25.
 //
 
 import SwiftUI
 
-struct LoginView: View {
-    @StateObject private var viewModel = AuthViewModel()
-    @State private var showRegisterView = false
+struct RegisterView: View {
+    @ObservedObject var viewModel: AuthViewModel
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -18,11 +17,11 @@ struct LoginView: View {
 
                 // Header
                 VStack(spacing: 12) {
-                    Text("Welcome Back")
+                    Text("Create Account")
                         .font(.displayLarge)
                         .foregroundColor(.adaptiveWhite)
 
-                    Text("Login to your account")
+                    Text("Sign up to get started")
                         .font(.bodyRegular)
                         .foregroundColor(.adaptiveSecondary)
                 }
@@ -47,45 +46,45 @@ struct LoginView: View {
                         icon: "lock.fill",
                         isSecure: true
                     )
-                    .textContentType(.password)
+                    .textContentType(.newPassword)
 
-                    // Forgot Password
-                    HStack {
-                        Spacer()
-                        Button(action: {
-                            // TODO: Implement forgot password
-                            HapticManager.impact(.light)
-                        }) {
-                            Text("Forgot Password?")
-                                .font(.caption)
-                                .foregroundColor(.adaptiveTertiary)
-                        }
-                    }
+                    // Confirm Password Input
+                    GlassTextField(
+                        text: $viewModel.confirmPassword,
+                        placeholder: "Confirm Password",
+                        icon: "lock.fill",
+                        isSecure: true
+                    )
+                    .textContentType(.newPassword)
 
-                    // Login Button
+                    // Sign Up Button
                     GlassButton(
-                        title: "Login",
+                        title: "Sign Up",
                         action: {
                             HapticManager.impact(.medium)
                             Task {
-                                await viewModel.login()
+                                await viewModel.register()
+                                // If registration is successful, dismiss the view
+                                if viewModel.isAuthenticated {
+                                    dismiss()
+                                }
                             }
                         },
                         isLoading: viewModel.isLoading,
                         isDisabled: false
                     )
 
-                    // Register Link
+                    // Login Link
                     HStack(spacing: 4) {
-                        Text("Don't have an account?")
+                        Text("Already have an account?")
                             .font(.bodyRegular)
                             .foregroundColor(.adaptiveSecondary)
 
                         Button(action: {
                             HapticManager.impact(.light)
-                            showRegisterView = true
+                            dismiss()
                         }) {
-                            Text("Register here")
+                            Text("Login here")
                                 .font(.bodyRegular)
                                 .fontWeight(.semibold)
                                 .foregroundColor(.adaptivePrimary)
@@ -122,9 +121,6 @@ struct LoginView: View {
                 }
                 .padding(.bottom, 20)
         }
-        .fullScreenCover(isPresented: $showRegisterView) {
-            RegisterView(viewModel: viewModel)
-        }
         .alert("Error", isPresented: $viewModel.showError) {
             Button("OK", role: .cancel) { }
         } message: {
@@ -136,5 +132,5 @@ struct LoginView: View {
 }
 
 #Preview {
-    LoginView()
+    RegisterView(viewModel: AuthViewModel())
 }

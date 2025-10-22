@@ -11,6 +11,7 @@ struct GlassTextField: View {
     @Binding var text: String
     let placeholder: String
     var icon: String?
+    var isSecure: Bool = false
 
     var body: some View {
         HStack(spacing: 12) {
@@ -26,10 +27,18 @@ struct GlassTextField: View {
                         .foregroundColor(.white.opacity(0.5))
                         .font(.textInputPlaceholder)
                 }
-                TextField("", text: $text)
-                    .foregroundColor(.white)
-                    .font(.textInput)
-                    .accentColor(.white)
+
+                if isSecure {
+                    SecureField("", text: $text)
+                        .foregroundColor(.white)
+                        .font(.textInput)
+                        .accentColor(.white)
+                } else {
+                    TextField("", text: $text)
+                        .foregroundColor(.white)
+                        .font(.textInput)
+                        .accentColor(.white)
+                }
             }
         }
         .padding()
