@@ -137,12 +137,22 @@ struct MenuCategoryCard: View {
                         .background(Color.adaptiveWhite.opacity(0.2))
                         .padding(.vertical, 4)
 
-                    VStack(spacing: 8) {
-                        ForEach(userActivities.prefix(3)) { activity in
+                    VStack(spacing: 0) {
+                        ForEach(Array(userActivities.prefix(3).enumerated()), id: \.element.id) { index, activity in
                             UserActivityRow(activity: activity)
+                                .padding(.vertical, 8)
+
+                            if index < min(userActivities.count, 3) - 1 {
+                                Divider()
+                                    .background(Color.adaptiveWhite.opacity(0.1))
+                            }
                         }
 
                         if userActivities.count > 3 {
+                            Divider()
+                                .background(Color.adaptiveWhite.opacity(0.1))
+                                .padding(.bottom, 4)
+
                             Text("+\(userActivities.count - 3) more")
                                 .font(.caption)
                                 .foregroundColor(.adaptiveSecondary)
@@ -196,31 +206,73 @@ struct MenuCategoryCard: View {
 // MARK: - User Activity Row
 struct UserActivityRow: View {
     let activity: UserActivity
+    @State private var showDeleteAlert = false
 
     var body: some View {
         HStack(spacing: 8) {
-            Circle()
-                .fill(Color.accentColor.opacity(0.3))
-                .frame(width: 6, height: 6)
-
-            VStack(alignment: .leading, spacing: 2) {
+            // Title and Duration
+            HStack(alignment: .top, spacing: 6) {
                 Text(activity.title)
                     .font(.caption)
                     .foregroundColor(.adaptiveWhite)
-                    .lineLimit(1)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
 
-                HStack(spacing: 8) {
-                    Label(activity.displayDuration, systemImage: "clock.fill")
-                        .font(.system(size: 10))
-                        .foregroundColor(.adaptiveSecondary)
+                Text("•")
+                    .font(.caption)
+                    .foregroundColor(.adaptiveSecondary)
 
-                    Label(activity.displayTime, systemImage: "clock")
-                        .font(.system(size: 10))
-                        .foregroundColor(.adaptiveSecondary)
-                }
+                Text(activity.displayDuration)
+                    .font(.caption)
+                    .foregroundColor(.adaptiveSecondary)
             }
 
             Spacer()
+
+            // Action Icons
+            HStack(spacing: 12) {
+                // Add Icon
+                Button(action: {
+                    HapticManager.impact(.light)
+                    // Handle add action
+                }) {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 18))
+                        .foregroundColor(.accentColor)
+                }
+                .buttonStyle(PlainButtonStyle())
+
+                // Delete Icon
+                Button(action: {
+                    HapticManager.impact(.light)
+                    showDeleteAlert = true
+                }) {
+                    Image(systemName: "trash.circle.fill")
+                        .font(.system(size: 18))
+                        .foregroundColor(.red.opacity(0.8))
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
+        }
+        .alert("Delete Activity", isPresented: $showDeleteAlert) {
+            Button("Cancel", role: .cancel) { }
+            Button("Delete", role: .destructive) {
+                deleteActivity()
+            }
+        } message: {
+            Text("Are you sure you want to delete '\(activity.title)'?")
+        }
+    }
+
+    private func deleteActivity() {
+        Task {
+            do {
+                try await ActivityService.shared.deleteUserActivity(activityId: activity.id)
+                HapticManager.notification(.success)
+            } catch {
+                print("Error deleting activity: \(error.localizedDescription)")
+                HapticManager.notification(.error)
+            }
         }
     }
 }
