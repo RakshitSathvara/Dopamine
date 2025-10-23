@@ -15,9 +15,11 @@ class ActivityService: ObservableObject {
 
     @Published var activities: [Activity] = []
     @Published var activitiesByCategory: [ActivityCategory: [Activity]] = [:]
+    @Published var userActivities: [UserActivity] = []
 
     private let db = Firestore.firestore()
     private let activitiesCollection = "activities"
+    private let userActivitiesCollection = "userActivities"
 
     private init() {}
 
@@ -250,5 +252,109 @@ class ActivityService: ObservableObject {
     // Get activities for a specific category from cached data
     func getActivities(for category: ActivityCategory) -> [Activity] {
         return activitiesByCategory[category] ?? []
+    }
+
+    // MARK: - User Activities
+
+    func createUserActivity(userId: String, title: String, category: ActivityCategory, durationMinutes: Int, scheduledTime: Date, scheduledDate: Date) async throws -> UserActivity {
+        let activity = UserActivity(
+            userId: userId,
+            title: title,
+            category: category,
+            durationMinutes: durationMinutes,
+            scheduledTime: scheduledTime,
+            scheduledDate: scheduledDate
+        )
+
+        do {
+            let docRef = try db.collection(userActivitiesCollection).addDocument(from: activity)
+            print("User activity created with ID: \(docRef.documentID)")
+
+            // Refresh user activities
+            try await fetchUserActivities(userId: userId)
+
+            return activity
+        } catch {
+            print("Error creating user activity: \(error.localizedDescription)")
+            throw error
+        }
+    }
+
+    func fetchUserActivities(userId: String) async throws -> [UserActivity] {
+        do {
+            let snapshot = try await db.collection(userActivitiesCollection)
+                .whereField("userId", isEqualTo: userId)
+                .order(by: "createdAt", descending: true)
+                .getDocuments()
+
+            let fetchedActivities = try snapshot.documents.compactMap { document in
+                try document.data(as: UserActivity.self)
+            }
+
+            userActivities = fetchedActivities
+            print("Fetched \(fetchedActivities.count) user activities for user: \(userId)")
+            return fetchedActivities
+        } catch {
+            print("Error fetching user activities: \(error.localizedDescription)")
+            throw error
+        }
+    }
+
+    func fetchUserActivitiesByCategory(userId: String, category: ActivityCategory) async throws -> [UserActivity] {
+        do {
+            let snapshot = try await db.collection(userActivitiesCollection)
+                .whereField("userId", isEqualTo: userId)
+                .whereField("category", isEqualTo: category.rawValue)
+                .order(by: "createdAt", descending: true)
+                .getDocuments()
+
+            let activities = try snapshot.documents.compactMap { document in
+                try document.data(as: UserActivity.self)
+            }
+
+            print("Fetched \(activities.count) user activities for category \(category.displayName)")
+            return activities
+        } catch {
+            print("Error fetching user activities by category: \(error.localizedDescription)")
+            throw error
+        }
+    }
+
+    func deleteUserActivity(activityId: String) async throws {
+        do {
+            try await db.collection(userActivitiesCollection).document(activityId).delete()
+            print("User activity deleted: \(activityId)")
+
+            // Remove from local array
+            userActivities.removeAll { $0.id == activityId }
+        } catch {
+            print("Error deleting user activity: \(error.localizedDescription)")
+            throw error
+        }
+    }
+
+    func listenToUserActivitiesByCategory(userId: String, category: ActivityCategory, completion: @escaping ([UserActivity]) -> Void) -> ListenerRegistration {
+        return db.collection(userActivitiesCollection)
+            .whereField("userId", isEqualTo: userId)
+            .whereField("category", isEqualTo: category.rawValue)
+            .order(by: "createdAt", descending: true)
+            .addSnapshotListener { querySnapshot, error in
+                if let error = error {
+                    print("Error listening to user activities by category: \(error.localizedDescription)")
+                    completion([])
+                    return
+                }
+
+                guard let documents = querySnapshot?.documents else {
+                    completion([])
+                    return
+                }
+
+                let activities = documents.compactMap { document -> UserActivity? in
+                    try? document.data(as: UserActivity.self)
+                }
+
+                completion(activities)
+            }
     }
 }

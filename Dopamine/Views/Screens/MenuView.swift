@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import FirebaseFirestore
 
 struct MenuView: View {
     @StateObject private var viewModel = MenuViewModel()
@@ -76,13 +77,16 @@ struct MenuCategoryCard: View {
     let onAdd: () -> Void
     @State private var isAdded = false
     @State private var showBottomSheet = false
+    @State private var userActivities: [UserActivity] = []
+    @StateObject private var authService = AuthService.shared
+    @State private var listener: ListenerRegistration?
 
     var body: some View {
         GlassCard(cornerRadius: 20) {
             VStack(alignment: .leading, spacing: 12) {
-                // Top: Icon, Title, and Plus Button in same line
+                // Top: Icon, Title, and Add Button in same line
                 HStack(alignment: .center, spacing: 10) {
-                    // Category Icon (smaller)
+                    // Category Icon
                     Text(categoryInfo.icon)
                         .font(.system(size: 16))
                         .frame(width: 26, height: 26)
@@ -90,47 +94,62 @@ struct MenuCategoryCard: View {
                             Circle()
                                 .fill(.ultraThinMaterial)
                         )
-                    
-                    // Category Name (smaller)
+
+                    // Category Name
                     Text(categoryInfo.title)
                         .font(.headline)
                         .foregroundColor(.adaptiveWhite)
-                    
+
                     Spacer()
-                    
-                    // Plus Button (smaller)
+
+                    // Add Item Button
                     Button(action: {
                         HapticManager.impact(.light)
                         showBottomSheet = true
                     }) {
-                        Image(systemName: isAdded ? "checkmark" : "plus")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(isAdded ? .green : .adaptiveWhite)
-                            .frame(width: 40, height: 40)
-                            .background {
-                                if isAdded {
-                                    Circle()
-                                        .fill(Color.green.opacity(0.2))
-                                } else {
-                                    Circle()
-                                        .fill(.ultraThinMaterial)
-                                }
-                            }
-                            .overlay(
-                                Circle()
-                                    .stroke(isAdded ? Color.green : Color.clear, lineWidth: 2)
-                            )
+                        HStack(spacing: 4) {
+                            Image(systemName: "plus")
+                                .font(.system(size: 12, weight: .bold))
+                            Text("Add Item")
+                                .font(.caption)
+                                .fontWeight(.semibold)
+                        }
+                        .foregroundColor(.adaptiveWhite)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(
+                            Capsule()
+                                .fill(.ultraThinMaterial)
+                        )
                     }
-                    .disabled(isAdded)
-                    .scaleEffect(isAdded ? 1.1 : 1.0)
                 }
-                
-                // Category Description (smaller text)
+
+                // Category Description
                 Text(categoryInfo.description)
                     .font(.caption2)
                     .foregroundColor(.adaptiveSecondary)
-                    .lineLimit(4)
+                    .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
+
+                // User Activities List
+                if !userActivities.isEmpty {
+                    Divider()
+                        .background(Color.adaptiveWhite.opacity(0.2))
+                        .padding(.vertical, 4)
+
+                    VStack(spacing: 8) {
+                        ForEach(userActivities.prefix(3)) { activity in
+                            UserActivityRow(activity: activity)
+                        }
+
+                        if userActivities.count > 3 {
+                            Text("+\(userActivities.count - 3) more")
+                                .font(.caption)
+                                .foregroundColor(.adaptiveSecondary)
+                                .padding(.top, 4)
+                        }
+                    }
+                }
             }
             .padding(16)
         }
@@ -150,6 +169,58 @@ struct MenuCategoryCard: View {
                     }
                 }
             )
+            .environmentObject(authService)
+        }
+        .onAppear {
+            setupListener()
+        }
+        .onDisappear {
+            listener?.remove()
+        }
+    }
+
+    private func setupListener() {
+        guard let userId = authService.currentUser?.uid else { return }
+
+        listener = ActivityService.shared.listenToUserActivitiesByCategory(
+            userId: userId,
+            category: category
+        ) { activities in
+            DispatchQueue.main.async {
+                self.userActivities = activities
+            }
+        }
+    }
+}
+
+// MARK: - User Activity Row
+struct UserActivityRow: View {
+    let activity: UserActivity
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Circle()
+                .fill(Color.accentColor.opacity(0.3))
+                .frame(width: 6, height: 6)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(activity.title)
+                    .font(.caption)
+                    .foregroundColor(.adaptiveWhite)
+                    .lineLimit(1)
+
+                HStack(spacing: 8) {
+                    Label(activity.displayDuration, systemImage: "clock.fill")
+                        .font(.system(size: 10))
+                        .foregroundColor(.adaptiveSecondary)
+
+                    Label(activity.displayTime, systemImage: "clock")
+                        .font(.system(size: 10))
+                        .foregroundColor(.adaptiveSecondary)
+                }
+            }
+
+            Spacer()
         }
     }
 }
@@ -157,75 +228,130 @@ struct MenuCategoryCard: View {
 // MARK: - Category Bottom Sheet
 struct CategoryBottomSheet: View {
     @Environment(\.dismiss) var dismiss
+    @EnvironmentObject var authService: AuthService
     let categoryInfo: MenuCategoryInfo
     let category: ActivityCategory
     let onAdd: () -> Void
-    
+
+    @State private var title = ""
+    @State private var durationMinutes = 0
+    @State private var selectedTime = Date()
+    @State private var selectedDate = Date()
+    @State private var isSubmitting = false
+    @FocusState private var focusedField: Field?
+
+    enum Field {
+        case title
+    }
+
+    var isValid: Bool {
+        !title.isEmpty && durationMinutes > 0
+    }
+
     var body: some View {
         NavigationStack {
-            VStack(spacing: 24) {
-                // Category Icon and Title
-                VStack(spacing: 12) {
-                    Text(categoryInfo.icon)
-                        .font(.system(size: 64))
-                        .frame(width: 80, height: 80)
-                        .background(
-                            Circle()
-                                .fill(.ultraThinMaterial)
-                        )
-                    
-                    Text(categoryInfo.title)
-                        .font(.h1)
-                        .foregroundColor(.adaptiveWhite)
-                }
-                .padding(.top, 20)
-                
-                // Description
-                Text(categoryInfo.description)
-                    .font(.bodyRegular)
-                    .foregroundColor(.adaptiveSecondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 20)
-                
-                Spacer()
-                
-                // Action Buttons
-                VStack(spacing: 12) {
-                    Button(action: {
-                        onAdd()
-                        HapticManager.notification(.success)
-                        dismiss()
-                    }) {
-                        Text("Add to Selection")
-                            .font(.h3)
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
+            ScrollView {
+                VStack(spacing: 24) {
+                    // Category Icon and Title
+                    VStack(spacing: 12) {
+                        Text(categoryInfo.icon)
+                            .font(.system(size: 64))
+                            .frame(width: 80, height: 80)
                             .background(
-                                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                    .fill(Color.accentColor)
-                            )
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                    
-                    Button(action: {
-                        HapticManager.impact(.light)
-                        dismiss()
-                    }) {
-                        Text("Cancel")
-                            .font(.h3)
-                            .foregroundColor(.adaptiveSecondary)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
-                            .background(
-                                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                Circle()
                                     .fill(.ultraThinMaterial)
                             )
+
+                        Text(categoryInfo.title)
+                            .font(.h1)
+                            .foregroundColor(.adaptiveWhite)
                     }
-                    .buttonStyle(PlainButtonStyle())
+                    .padding(.top, 20)
+
+                    // Description
+                    Text(categoryInfo.description)
+                        .font(.bodyRegular)
+                        .foregroundColor(.adaptiveSecondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 20)
+
+                    // Form Fields
+                    VStack(spacing: 16) {
+                        // Title Field
+                        GlassTextField(
+                            text: $title,
+                            placeholder: "Activity title",
+                            icon: "text.bubble.fill"
+                        )
+                        .focused($focusedField, equals: .title)
+
+                        // Duration Field
+                        DurationPickerField(
+                            durationMinutes: $durationMinutes,
+                            icon: "clock.fill",
+                            placeholder: "Duration"
+                        )
+
+                        // Time Picker
+                        TimePickerField(
+                            selectedTime: $selectedTime,
+                            icon: "clock.fill",
+                            label: "Time"
+                        )
+
+                        // Date Picker
+                        DatePickerField(
+                            selectedDate: $selectedDate,
+                            icon: "calendar",
+                            label: "Date"
+                        )
+                    }
+                    .padding(.horizontal, 20)
+
+                    // Action Buttons
+                    VStack(spacing: 12) {
+                        Button(action: {
+                            Task {
+                                await submitActivity()
+                            }
+                        }) {
+                            if isSubmitting {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            } else {
+                                Text("Submit")
+                                    .font(.h3)
+                                    .foregroundColor(isValid ? .white : .adaptiveSecondary)
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                .fill(isValid ? Color.accentColor : Color.gray.opacity(0.3))
+                        )
+                        .disabled(!isValid || isSubmitting)
+                        .buttonStyle(PlainButtonStyle())
+
+                        Button(action: {
+                            HapticManager.impact(.light)
+                            dismiss()
+                        }) {
+                            Text("Cancel")
+                                .font(.h3)
+                                .foregroundColor(.adaptiveSecondary)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                        .fill(.ultraThinMaterial)
+                                )
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 20)
                 }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 20)
             }
             .background(Color.secondaryBackground)
             .navigationTitle(category.displayName)
@@ -239,8 +365,37 @@ struct CategoryBottomSheet: View {
                 }
             }
         }
-        .presentationDetents([.medium])
+        .presentationDetents([.large])
         .presentationDragIndicator(.visible)
+    }
+
+    private func submitActivity() async {
+        guard let userId = authService.currentUser?.uid else {
+            print("Error: No user logged in")
+            return
+        }
+
+        isSubmitting = true
+
+        do {
+            try await ActivityService.shared.createUserActivity(
+                userId: userId,
+                title: title,
+                category: category,
+                durationMinutes: durationMinutes,
+                scheduledTime: selectedTime,
+                scheduledDate: selectedDate
+            )
+
+            HapticManager.notification(.success)
+            onAdd()
+            dismiss()
+        } catch {
+            print("Error creating activity: \(error.localizedDescription)")
+            HapticManager.notification(.error)
+        }
+
+        isSubmitting = false
     }
 }
 
