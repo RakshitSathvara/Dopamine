@@ -15,6 +15,7 @@ class ProfileViewModel: ObservableObject {
     @Published var user: User?
     @Published var cart: Cart?
     @Published var orders: [Order] = []
+    @Published var userActivities: [UserActivity] = []
     @Published var isLoading = false
     @Published var errorMessage: String?
     @Published var showSuccessMessage = false
@@ -22,6 +23,7 @@ class ProfileViewModel: ObservableObject {
 
     private let userService = UserService.shared
     private let orderService = OrderService.shared
+    private let activityService = ActivityService.shared
     private let authService = AuthService.shared
 
     init() {
@@ -29,6 +31,7 @@ class ProfileViewModel: ObservableObject {
             await loadUserProfile()
             await loadCart()
             await loadOrders()
+            await loadUserActivities()
         }
     }
 
@@ -75,6 +78,16 @@ class ProfileViewModel: ObservableObject {
             orders = try await orderService.fetchOrders(userId: userId)
         } catch {
             print("Error loading orders: \(error.localizedDescription)")
+        }
+    }
+
+    func loadUserActivities() async {
+        guard let userId = authService.currentUser?.uid else { return }
+
+        do {
+            userActivities = try await activityService.fetchUserActivities(userId: userId)
+        } catch {
+            print("Error loading user activities: \(error.localizedDescription)")
         }
     }
 
@@ -260,6 +273,32 @@ class ProfileViewModel: ObservableObject {
         await loadUserProfile()
         await loadCart()
         await loadOrders()
+        await loadUserActivities()
+    }
+    
+    func deleteUserActivity(_ activityId: String) async {
+        do {
+            try await activityService.deleteUserActivity(activityId: activityId)
+            await loadUserActivities()
+            HapticManager.notification(.success)
+        } catch {
+            errorMessage = "Failed to delete activity"
+            HapticManager.notification(.error)
+            print("Error deleting user activity: \(error.localizedDescription)")
+        }
+    }
+    
+    func addUserActivityToHome(_ activityId: String) async {
+        do {
+            try await activityService.addUserActivityToHomeScreen(activityId: activityId)
+            await loadUserActivities()
+            showSuccess("Activity added to home screen!")
+            HapticManager.notification(.success)
+        } catch {
+            errorMessage = "Failed to add activity to home"
+            HapticManager.notification(.error)
+            print("Error adding user activity to home: \(error.localizedDescription)")
+        }
     }
 
     // MARK: - Computed Properties

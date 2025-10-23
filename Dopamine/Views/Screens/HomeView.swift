@@ -267,9 +267,9 @@ struct UserActivityCard: View {
                     HapticManager.impact(.light)
                     onRemove()
                 }) {
-                    Image(systemName: "xmark.circle.fill")
+                    Image(systemName: "cart.badge.plus")
                         .font(.system(size: 24))
-                        .foregroundColor(.adaptiveSecondary)
+                        .foregroundColor(.purple)
                 }
                 .buttonStyle(PlainButtonStyle())
             }

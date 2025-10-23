@@ -101,6 +101,7 @@ struct ProfileView: View {
         VStack(spacing: 24) {
             profileHeaderSection
 
+            userActivitiesSection
             cartSection
             orderHistorySection
         }
@@ -129,6 +130,54 @@ struct ProfileView: View {
         }
     }
 
+    private var userActivitiesSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Your Activities")
+                .font(.h2)
+                .foregroundColor(.adaptiveWhite)
+                .padding(.horizontal, 20)
+            
+            if !viewModel.userActivities.isEmpty {
+                userActivitiesList
+            } else {
+                emptyUserActivitiesView
+            }
+        }
+    }
+    
+    private var userActivitiesList: some View {
+        VStack(spacing: 12) {
+            ForEach(viewModel.userActivities) { userActivity in
+                ProfileUserActivityCard(
+                    userActivity: userActivity,
+                    onAddToHome: {
+                        Task {
+                            await viewModel.addUserActivityToHome(userActivity.id ?? "")
+                        }
+                    },
+                    onDelete: {
+                        Task {
+                            await viewModel.deleteUserActivity(userActivity.id ?? "")
+                        }
+                    }
+                )
+            }
+        }
+        .padding(.horizontal, 20)
+    }
+    
+    private var emptyUserActivitiesView: some View {
+        EmptyStateView(
+            icon: "square.stack.3d.up.slash",
+            title: "No Activities Yet",
+            message: "Create custom activities from the menu to see them here!",
+            actionTitle: nil,
+            action: nil
+        )
+        .frame(height: 180)
+        .padding(.horizontal, 20)
+    }
+    
     private var cartSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Your Cart")
@@ -503,6 +552,115 @@ struct ThemeOptionButton: View {
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
                     .stroke(isSelected ? Color.purple : Color.borderLight, lineWidth: isSelected ? 2 : 1)
             )
+        }
+    }
+}
+
+struct ProfileUserActivityCard: View {
+    let userActivity: UserActivity
+    let onAddToHome: () -> Void
+    let onDelete: () -> Void
+    
+    var body: some View {
+        GlassCard(cornerRadius: 16) {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(spacing: 12) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack(spacing: 8) {
+                            Text(userActivity.title)
+                                .font(.h3)
+                                .foregroundColor(.adaptiveWhite)
+                            
+                            if userActivity.isOnHomeScreen {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "house.fill")
+                                        .font(.system(size: 10))
+                                    Text("On Home")
+                                        .font(.system(size: 10))
+                                        .fontWeight(.medium)
+                                }
+                                .foregroundColor(.adaptiveWhite)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                        .fill(Color.green.opacity(0.6))
+                                )
+                            }
+                        }
+                        
+                        HStack(spacing: 8) {
+                            Label(userActivity.displayDuration, systemImage: "clock.fill")
+                                .font(.caption)
+                                .foregroundColor(.adaptiveSecondary)
+                            
+                            Text("•")
+                                .foregroundColor(.adaptiveTertiary)
+                            
+                            Text(userActivity.category.displayName)
+                                .font(.caption)
+                                .foregroundColor(.adaptiveSecondary)
+                        }
+                        
+                        HStack(spacing: 8) {
+                            Label(userActivity.displayTime, systemImage: "clock")
+                                .font(.caption)
+                                .foregroundColor(.adaptiveSecondary)
+                            
+                            Text("•")
+                                .foregroundColor(.adaptiveTertiary)
+                            
+                            Label(userActivity.displayDate, systemImage: "calendar")
+                                .font(.caption)
+                                .foregroundColor(.adaptiveSecondary)
+                        }
+                    }
+                    
+                    Spacer()
+                }
+                
+                // Action buttons
+                HStack(spacing: 12) {
+                    if !userActivity.isOnHomeScreen {
+                        Button(action: {
+                            HapticManager.impact(.light)
+                            onAddToHome()
+                        }) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "house.badge.plus")
+                                    .font(.caption)
+                                Text("Add to Home")
+                                    .font(.caption)
+                                    .fontWeight(.medium)
+                            }
+                            .foregroundColor(.adaptiveWhite)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(
+                                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                    .fill(Color.purple.opacity(0.6))
+                            )
+                        }
+                    }
+                    
+                    Spacer()
+                    
+                    Button(action: {
+                        HapticManager.impact(.light)
+                        onDelete()
+                    }) {
+                        Image(systemName: "trash.fill")
+                            .font(.caption)
+                            .foregroundColor(.red)
+                            .padding(8)
+                            .background(
+                                Circle()
+                                    .fill(Color.red.opacity(0.2))
+                            )
+                    }
+                }
+            }
+            .padding(16)
         }
     }
 }
