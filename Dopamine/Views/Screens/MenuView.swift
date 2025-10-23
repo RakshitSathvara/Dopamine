@@ -266,9 +266,14 @@ struct UserActivityRow: View {
     }
 
     private func deleteActivity() {
+        guard let activityId = activity.id else {
+            print("Error: Activity ID is nil")
+            return
+        }
+        
         Task {
             do {
-                try await ActivityService.shared.deleteUserActivity(activityId: activity.id)
+                try await ActivityService.shared.deleteUserActivity(activityId: activityId)
                 HapticManager.notification(.success)
             } catch {
                 print("Error deleting activity: \(error.localizedDescription)")
