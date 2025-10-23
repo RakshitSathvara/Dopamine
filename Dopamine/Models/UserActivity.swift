@@ -17,6 +17,7 @@ struct UserActivity: Identifiable, Codable {
     let scheduledTime: Date
     let scheduledDate: Date
     let createdAt: Date
+    var isOnHomeScreen: Bool
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -27,9 +28,10 @@ struct UserActivity: Identifiable, Codable {
         case scheduledTime
         case scheduledDate
         case createdAt
+        case isOnHomeScreen
     }
 
-    init(id: String? = nil, userId: String, title: String, category: ActivityCategory, durationMinutes: Int, scheduledTime: Date, scheduledDate: Date, createdAt: Date = Date()) {
+    init(id: String? = nil, userId: String, title: String, category: ActivityCategory, durationMinutes: Int, scheduledTime: Date, scheduledDate: Date, createdAt: Date = Date(), isOnHomeScreen: Bool = false) {
         self.id = id
         self.userId = userId
         self.title = title
@@ -38,6 +40,7 @@ struct UserActivity: Identifiable, Codable {
         self.scheduledTime = scheduledTime
         self.scheduledDate = scheduledDate
         self.createdAt = createdAt
+        self.isOnHomeScreen = isOnHomeScreen
     }
 
     var displayDuration: String {

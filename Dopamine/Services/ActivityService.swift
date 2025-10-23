@@ -357,4 +357,75 @@ class ActivityService: ObservableObject {
                 completion(activities)
             }
     }
+
+    // MARK: - Add to Home Screen
+
+    func addUserActivityToHomeScreen(activityId: String) async throws {
+        do {
+            try await db.collection(userActivitiesCollection).document(activityId).updateData([
+                "isOnHomeScreen": true
+            ])
+            print("User activity added to home screen: \(activityId)")
+        } catch {
+            print("Error adding user activity to home screen: \(error.localizedDescription)")
+            throw error
+        }
+    }
+
+    func removeUserActivityFromHomeScreen(activityId: String) async throws {
+        do {
+            try await db.collection(userActivitiesCollection).document(activityId).updateData([
+                "isOnHomeScreen": false
+            ])
+            print("User activity removed from home screen: \(activityId)")
+        } catch {
+            print("Error removing user activity from home screen: \(error.localizedDescription)")
+            throw error
+        }
+    }
+
+    func fetchHomeScreenUserActivities(userId: String) async throws -> [UserActivity] {
+        do {
+            let snapshot = try await db.collection(userActivitiesCollection)
+                .whereField("userId", isEqualTo: userId)
+                .whereField("isOnHomeScreen", isEqualTo: true)
+                .order(by: "createdAt", descending: true)
+                .getDocuments()
+
+            let activities = try snapshot.documents.compactMap { document in
+                try document.data(as: UserActivity.self)
+            }
+
+            print("Fetched \(activities.count) home screen user activities for user: \(userId)")
+            return activities
+        } catch {
+            print("Error fetching home screen user activities: \(error.localizedDescription)")
+            throw error
+        }
+    }
+
+    func listenToHomeScreenUserActivities(userId: String, completion: @escaping ([UserActivity]) -> Void) -> ListenerRegistration {
+        return db.collection(userActivitiesCollection)
+            .whereField("userId", isEqualTo: userId)
+            .whereField("isOnHomeScreen", isEqualTo: true)
+            .order(by: "createdAt", descending: true)
+            .addSnapshotListener { querySnapshot, error in
+                if let error = error {
+                    print("Error listening to home screen user activities: \(error.localizedDescription)")
+                    completion([])
+                    return
+                }
+
+                guard let documents = querySnapshot?.documents else {
+                    completion([])
+                    return
+                }
+
+                let activities = documents.compactMap { document -> UserActivity? in
+                    try? document.data(as: UserActivity.self)
+                }
+
+                completion(activities)
+            }
+    }
 }

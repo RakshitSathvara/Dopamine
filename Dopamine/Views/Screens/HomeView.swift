@@ -17,12 +17,12 @@ struct HomeView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                if viewModel.isLoading && viewModel.activities.isEmpty {
+                if viewModel.isLoading && viewModel.activities.isEmpty && viewModel.userActivities.isEmpty {
                     // Loading State
                     ProgressView()
                         .progressViewStyle(CircularProgressViewStyle(tint: .adaptiveWhite))
                         .scaleEffect(1.5)
-                } else if viewModel.activities.isEmpty {
+                } else if viewModel.activities.isEmpty && viewModel.userActivities.isEmpty {
                     // Empty State
                     EmptyStateView(
                         icon: "tray",
@@ -48,18 +48,53 @@ struct HomeView: View {
                         // Activity List
                         ScrollView {
                             LazyVStack(spacing: 16) {
-                                ForEach(viewModel.activities.prefix(5)) { activity in
-                                    ActivityCard(
-                                        activity: activity,
-                                        isSelected: viewModel.isActivitySelected(activity.id),
-                                        onToggle: {
-                                            viewModel.toggleActivitySelection(activity.id)
+                                // User Activities Section
+                                if !viewModel.userActivities.isEmpty {
+                                    VStack(alignment: .leading, spacing: 12) {
+                                        Text("Your Activities")
+                                            .font(.h3)
+                                            .foregroundColor(.adaptiveWhite)
+                                            .padding(.horizontal, 20)
+
+                                        ForEach(viewModel.userActivities) { userActivity in
+                                            UserActivityCard(
+                                                userActivity: userActivity,
+                                                onRemove: {
+                                                    Task {
+                                                        await viewModel.removeUserActivityFromHome(userActivity.id ?? "")
+                                                    }
+                                                }
+                                            )
+                                            .padding(.horizontal, 20)
                                         }
-                                    )
-                                    .transition(.asymmetric(
-                                        insertion: .scale.combined(with: .opacity),
-                                        removal: .scale.combined(with: .opacity)
-                                    ))
+                                    }
+                                    .padding(.top, 24)
+                                }
+
+                                // System Activities Section
+                                if !viewModel.activities.isEmpty {
+                                    VStack(alignment: .leading, spacing: 12) {
+                                        Text("Suggested Activities")
+                                            .font(.h3)
+                                            .foregroundColor(.adaptiveWhite)
+                                            .padding(.horizontal, 20)
+                                            .padding(.top, viewModel.userActivities.isEmpty ? 24 : 16)
+
+                                        ForEach(viewModel.activities.prefix(5)) { activity in
+                                            ActivityCard(
+                                                activity: activity,
+                                                isSelected: viewModel.isActivitySelected(activity.id),
+                                                onToggle: {
+                                                    viewModel.toggleActivitySelection(activity.id)
+                                                }
+                                            )
+                                            .padding(.horizontal, 20)
+                                            .transition(.asymmetric(
+                                                insertion: .scale.combined(with: .opacity),
+                                                removal: .scale.combined(with: .opacity)
+                                            ))
+                                        }
+                                    }
                                 }
 
                                 // Explore More Button
@@ -85,10 +120,9 @@ struct HomeView: View {
                                             .stroke(Color.borderLight, lineWidth: 1)
                                     )
                                 }
+                                .padding(.horizontal, 20)
                                 .padding(.vertical, 24)
                             }
-                            .padding(.horizontal, 20)
-                            .padding(.top, 24)
                             .padding(.bottom, 100)
                         }
                     }
@@ -189,6 +223,51 @@ struct HomeHeader: View {
                         }
                 }
             }
+        }
+    }
+}
+
+struct UserActivityCard: View {
+    let userActivity: UserActivity
+    let onRemove: () -> Void
+
+    var body: some View {
+        GlassCard(cornerRadius: 20) {
+            HStack(spacing: 16) {
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(spacing: 8) {
+                        Text(userActivity.title)
+                            .font(.h3)
+                            .foregroundColor(.adaptiveWhite)
+                    }
+
+                    HStack(spacing: 8) {
+                        Label(userActivity.displayDuration, systemImage: "clock.fill")
+                            .font(.caption)
+                            .foregroundColor(.adaptiveSecondary)
+
+                        Text("•")
+                            .foregroundColor(.adaptiveTertiary)
+
+                        Text(userActivity.category.displayName)
+                            .font(.caption)
+                            .foregroundColor(.adaptiveSecondary)
+                    }
+                }
+
+                Spacer()
+
+                Button(action: {
+                    HapticManager.impact(.light)
+                    onRemove()
+                }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 24))
+                        .foregroundColor(.adaptiveSecondary)
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
+            .padding(16)
         }
     }
 }
