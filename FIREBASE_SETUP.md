@@ -119,6 +119,11 @@ service cloud.firestore {
       allow create: if isAuthenticated() &&
         request.resource.data.userId == request.auth.uid;
     }
+
+    match /menu/{document=**} {
+      allow read: if isAuthenticated();
+      allow write: if false; // Only admins can write (use Firebase Console)
+    }
   }
 }
 ```
@@ -132,9 +137,11 @@ Click **Publish** to save the rules.
 3. Choose **Start in test mode**
 4. Click **Next** and **Done**
 
-## Step 8: Seed Sample Activities
+## Step 8: Seed Sample Data
 
-After setting up Firestore, you can seed sample activities:
+After setting up Firestore, you can seed sample activities and menu configuration:
+
+### Seed Sample Activities
 
 1. Build and run the app in Xcode
 2. In your code, call `ActivityService.shared.seedSampleActivities()` once
@@ -157,6 +164,25 @@ Alternatively, you can manually add activities in the Firebase Console:
 2. Click **Start collection**
 3. Collection ID: `activities`
 4. Add sample documents following the Activity model structure
+
+### Seed Menu Configuration
+
+To set up the dopamine menu categories with descriptions:
+
+1. In your code, call `MenuService.shared.seedMenuConfiguration()` once:
+   ```swift
+   init() {
+       FirebaseManager.shared.configure()
+
+       // Seed menu configuration once (comment out after first run)
+       Task {
+           try? await MenuService.shared.seedMenuConfiguration()
+       }
+   }
+   ```
+2. Run the app once, then comment out the seeding code
+
+This will create a `menu/categories` document with all category descriptions (Starters, Mains, Sides, Desserts, Specials).
 
 ## Step 9: Configure Email Link Settings
 

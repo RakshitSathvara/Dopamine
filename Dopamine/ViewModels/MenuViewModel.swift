@@ -20,19 +20,32 @@ class MenuViewModel: ObservableObject {
     @Published var cartItemsCount = 0
     @Published var isLoading = false
     @Published var errorMessage: String?
+    @Published var menuConfiguration: MenuConfiguration?
 
     private let activityService = ActivityService.shared
     private let orderService = OrderService.shared
     private let authService = AuthService.shared
+    private let menuService = MenuService.shared
 
     init() {
         Task {
+            await loadMenuConfiguration()
             await loadActivities()
             await loadCart()
         }
     }
 
     // MARK: - Load Data
+
+    func loadMenuConfiguration() async {
+        do {
+            menuConfiguration = try await menuService.fetchMenuConfiguration()
+        } catch {
+            print("Error loading menu configuration: \(error.localizedDescription)")
+            // Fallback to default configuration
+            menuConfiguration = MenuConfiguration.default
+        }
+    }
 
     func loadActivities() async {
         isLoading = true
@@ -147,7 +160,26 @@ class MenuViewModel: ObservableObject {
     }
 
     func refresh() async {
+        await loadMenuConfiguration()
         await loadActivities()
         await loadCart()
+    }
+
+    // MARK: - Menu Configuration
+
+    func getCategoryInfo(for category: ActivityCategory) -> MenuCategoryInfo {
+        return menuConfiguration?.getCategoryInfo(for: category) ?? MenuConfiguration.default.getCategoryInfo(for: category)
+    }
+
+    func getCategoryTitle(for category: ActivityCategory) -> String {
+        return getCategoryInfo(for: category).title
+    }
+
+    func getCategoryDescription(for category: ActivityCategory) -> String {
+        return getCategoryInfo(for: category).description
+    }
+
+    func getCategoryIcon(for category: ActivityCategory) -> String {
+        return getCategoryInfo(for: category).icon
     }
 }
