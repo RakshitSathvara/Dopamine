@@ -208,6 +208,9 @@ struct MenuCategoryCard: View {
 struct UserActivityRow: View {
     let activity: UserActivity
     @State private var showDeleteAlert = false
+    @State private var showToast = false
+    @State private var toastMessage = ""
+    @State private var isAddedToHome = false
 
     var body: some View {
         HStack(spacing: 8) {
@@ -235,13 +238,14 @@ struct UserActivityRow: View {
                 // Add Icon
                 Button(action: {
                     HapticManager.impact(.light)
-                    // Handle add action
+                    addToHomeScreen()
                 }) {
-                    Image(systemName: "plus.circle.fill")
+                    Image(systemName: isAddedToHome ? "checkmark.circle.fill" : "plus.circle.fill")
                         .font(.system(size: 18))
-                        .foregroundColor(.accentColor)
+                        .foregroundColor(isAddedToHome ? .green : .accentColor)
                 }
                 .buttonStyle(PlainButtonStyle())
+                .disabled(isAddedToHome)
 
                 // Delete Icon
                 Button(action: {
@@ -263,6 +267,27 @@ struct UserActivityRow: View {
         } message: {
             Text("Are you sure you want to delete '\(activity.title)'?")
         }
+        .onAppear {
+            isAddedToHome = activity.isOnHomeScreen
+        }
+    }
+
+    private func addToHomeScreen() {
+        guard let activityId = activity.id else {
+            print("Error: Activity ID is nil")
+            return
+        }
+
+        Task {
+            do {
+                try await ActivityService.shared.addUserActivityToHomeScreen(activityId: activityId)
+                HapticManager.notification(.success)
+                isAddedToHome = true
+            } catch {
+                print("Error adding activity to home screen: \(error.localizedDescription)")
+                HapticManager.notification(.error)
+            }
+        }
     }
 
     private func deleteActivity() {
@@ -270,7 +295,7 @@ struct UserActivityRow: View {
             print("Error: Activity ID is nil")
             return
         }
-        
+
         Task {
             do {
                 try await ActivityService.shared.deleteUserActivity(activityId: activityId)

@@ -13,6 +13,7 @@ import FirebaseAuth
 @MainActor
 class HomeViewModel: ObservableObject {
     @Published var activities: [Activity] = []
+    @Published var userActivities: [UserActivity] = []
     @Published var selectedActivities: Set<String> = []
     @Published var cartItemsCount = 0
     @Published var isLoading = false
@@ -25,6 +26,7 @@ class HomeViewModel: ObservableObject {
     init() {
         Task {
             await loadActivities()
+            await loadUserActivities()
             await loadCart()
         }
     }
@@ -44,6 +46,16 @@ class HomeViewModel: ObservableObject {
 
             // Use sample data as fallback
             activities = Activity.sampleActivities
+        }
+    }
+
+    func loadUserActivities() async {
+        guard let userId = authService.currentUser?.uid else { return }
+
+        do {
+            userActivities = try await activityService.fetchHomeScreenUserActivities(userId: userId)
+        } catch {
+            print("Error loading user activities: \(error.localizedDescription)")
         }
     }
 
@@ -130,10 +142,27 @@ class HomeViewModel: ObservableObject {
         activities.filter { $0.category == category }
     }
 
+    // MARK: - User Activities
+
+    func removeUserActivityFromHome(_ activityId: String) async {
+        guard !activityId.isEmpty else { return }
+
+        do {
+            try await activityService.removeUserActivityFromHomeScreen(activityId: activityId)
+            await loadUserActivities()
+            HapticManager.notification(.success)
+        } catch {
+            errorMessage = "Failed to remove activity from home"
+            HapticManager.notification(.error)
+            print("Error removing user activity from home: \(error.localizedDescription)")
+        }
+    }
+
     // MARK: - Refresh
 
     func refresh() async {
         await loadActivities()
+        await loadUserActivities()
         await loadCart()
     }
 }
