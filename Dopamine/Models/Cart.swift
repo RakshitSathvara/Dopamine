@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct CartItem: Identifiable, Codable {
+struct CartItem: Identifiable, Codable, Equatable {
     let id: String
     let activityId: String
     let addedAt: Date
@@ -15,9 +15,13 @@ struct CartItem: Identifiable, Codable {
     var activity: Activity? {
         Activity.sampleActivities.first { $0.id == activityId }
     }
+    
+    static func == (lhs: CartItem, rhs: CartItem) -> Bool {
+        lhs.id == rhs.id && lhs.activityId == rhs.activityId && lhs.addedAt == rhs.addedAt
+    }
 }
 
-struct Cart: Codable {
+struct Cart: Codable, Equatable {
     var items: [CartItem]
     var updatedAt: Date
 

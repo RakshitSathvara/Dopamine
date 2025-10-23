@@ -16,138 +16,7 @@ struct ProfileView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                if viewModel.isLoading && viewModel.user == nil {
-                    // Loading State
-                    ProgressView()
-                        .progressViewStyle(CircularProgressViewStyle(tint: .adaptiveWhite))
-                        .scaleEffect(1.5)
-                        .frame(maxWidth: .infinity)
-                        .padding(.top, 100)
-                } else {
-                    VStack(spacing: 24) {
-                        // Profile Header
-                        if let user = viewModel.user {
-                            ProfileHeader(user: user)
-                                .padding(.horizontal, 20)
-                        } else {
-                            // User profile loading failed
-                            EmptyStateView(
-                                icon: "person.crop.circle.badge.exclamationmark",
-                                title: "Profile Not Found",
-                                message: "Unable to load your profile. Please try again.",
-                                actionTitle: "Retry",
-                                action: {
-                                    Task {
-                                        await viewModel.refresh()
-                                    }
-                                }
-                            )
-                            .frame(height: 300)
-                        }
-
-                        // Theme Selector
-                        ThemeSelectorCard(
-                            currentTheme: $themeManager.currentTheme,
-                            showThemeSelector: $showThemeSelector
-                        )
-                        .padding(.horizontal, 20)
-
-                        // Cart Section
-                        VStack(alignment: .leading, spacing: 16) {
-                            Text("Your Cart")
-                                .font(.h2)
-                                .foregroundColor(.adaptiveWhite)
-                                .padding(.horizontal, 20)
-
-                            if let cart = viewModel.cart, !cart.items.isEmpty {
-                                VStack(spacing: 12) {
-                                    ForEach(cart.items) { cartItem in
-                                        if let activity = cartActivities.first(where: { $0.id == cartItem.activityId }) {
-                                            CartItemCard(
-                                                activity: activity,
-                                                onRemove: {
-                                                    Task {
-                                                        await viewModel.removeFromCart(cartItem.id)
-                                                    }
-                                                }
-                                            )
-                                        }
-                                    }
-                                }
-                                .padding(.horizontal, 20)
-
-                                // Total and Place Order
-                                VStack(spacing: 12) {
-                                    HStack {
-                                        Text("Total:")
-                                            .font(.h3)
-                                            .foregroundColor(.adaptiveWhite)
-
-                                        Spacer()
-
-                                        Text("\(cartActivities.reduce(0) { $0 + $1.duration }) minutes")
-                                            .font(.h3)
-                                            .foregroundColor(.adaptiveWhite)
-                                            .fontWeight(.bold)
-                                    }
-                                    .padding(.horizontal, 20)
-
-                                    GlassButton(
-                                        title: "Place Order",
-                                        icon: "checkmark.circle.fill",
-                                        action: {
-                                            Task {
-                                                await viewModel.placeOrder()
-                                            }
-                                        },
-                                        isLoading: viewModel.isLoading
-                                    )
-                                    .padding(.horizontal, 20)
-                                }
-                            } else {
-                                EmptyStateView(
-                                    icon: "cart.badge.questionmark",
-                                    title: "Cart is Empty",
-                                    message: "Add activities from the menu to get started!",
-                                    actionTitle: nil,
-                                    action: nil
-                                )
-                                .frame(height: 200)
-                                .padding(.horizontal, 20)
-                            }
-                        }
-
-                        // Order History
-                        VStack(alignment: .leading, spacing: 16) {
-                            Text("Order History")
-                                .font(.h2)
-                                .foregroundColor(.adaptiveWhite)
-                                .padding(.horizontal, 20)
-
-                            if viewModel.orders.isEmpty {
-                                EmptyStateView(
-                                    icon: "clock.badge.questionmark",
-                                    title: "No Orders Yet",
-                                    message: "Your order history will appear here once you place your first order.",
-                                    actionTitle: nil,
-                                    action: nil
-                                )
-                                .frame(height: 200)
-                                .padding(.horizontal, 20)
-                            } else {
-                                VStack(spacing: 12) {
-                                    ForEach(viewModel.orders) { order in
-                                        OrderCard(order: order)
-                                    }
-                                }
-                                .padding(.horizontal, 20)
-                            }
-                        }
-                        .padding(.top, 24)
-                    }
-                    .padding(.top, 16)
-                    .padding(.bottom, 100)
-                }
+                contentView
             }
             .navigationTitle("Profile")
             .navigationBarTitleDisplayMode(.inline)
@@ -202,6 +71,176 @@ struct ProfileView: View {
                 }
             }
         }
+    }
+    
+    @ViewBuilder
+    private var contentView: some View {
+        if viewModel.isLoading && viewModel.user == nil {
+            loadingView
+        } else {
+            mainContent
+        }
+    }
+    
+    private var loadingView: some View {
+        ProgressView()
+            .progressViewStyle(CircularProgressViewStyle(tint: .adaptiveWhite))
+            .scaleEffect(1.5)
+            .frame(maxWidth: .infinity)
+            .padding(.top, 100)
+    }
+    
+    private var mainContent: some View {
+        VStack(spacing: 24) {
+            profileHeaderSection
+            
+            ThemeSelectorCard(
+                currentTheme: $themeManager.currentTheme,
+                showThemeSelector: $showThemeSelector
+            )
+            .padding(.horizontal, 20)
+            
+            cartSection
+            orderHistorySection
+        }
+        .padding(.top, 16)
+        .padding(.bottom, 100)
+    }
+    
+    @ViewBuilder
+    private var profileHeaderSection: some View {
+        if let user = viewModel.user {
+            ProfileHeader(user: user)
+                .padding(.horizontal, 20)
+        } else {
+            EmptyStateView(
+                icon: "person.crop.circle.badge.exclamationmark",
+                title: "Profile Not Found",
+                message: "Unable to load your profile. Please try again.",
+                actionTitle: "Retry",
+                action: {
+                    Task {
+                        await viewModel.refresh()
+                    }
+                }
+            )
+            .frame(height: 300)
+        }
+    }
+    
+    private var cartSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Your Cart")
+                .font(.h2)
+                .foregroundColor(.adaptiveWhite)
+                .padding(.horizontal, 20)
+            
+            if let cart = viewModel.cart, !cart.items.isEmpty {
+                cartItemsList
+                cartTotalAndOrder
+            } else {
+                emptyCartView
+            }
+        }
+    }
+    
+    private var cartItemsList: some View {
+        VStack(spacing: 12) {
+            if let cart = viewModel.cart {
+                ForEach(cart.items) { cartItem in
+                    if let activity = cartActivities.first(where: { $0.id == cartItem.activityId }) {
+                        CartItemCard(
+                            activity: activity,
+                            onRemove: {
+                                Task {
+                                    await viewModel.removeFromCart(cartItem.id)
+                                }
+                            }
+                        )
+                    }
+                }
+            }
+        }
+        .padding(.horizontal, 20)
+    }
+    
+    private var cartTotalAndOrder: some View {
+        VStack(spacing: 12) {
+            HStack {
+                Text("Total:")
+                    .font(.h3)
+                    .foregroundColor(.adaptiveWhite)
+                
+                Spacer()
+                
+                Text("\(cartActivities.reduce(0) { $0 + $1.duration }) minutes")
+                    .font(.h3)
+                    .foregroundColor(.adaptiveWhite)
+                    .fontWeight(.bold)
+            }
+            .padding(.horizontal, 20)
+            
+            GlassButton(
+                title: "Place Order",
+                icon: "checkmark.circle.fill",
+                action: {
+                    Task {
+                        await viewModel.placeOrder()
+                    }
+                },
+                isLoading: viewModel.isLoading
+            )
+            .padding(.horizontal, 20)
+        }
+    }
+    
+    private var emptyCartView: some View {
+        EmptyStateView(
+            icon: "cart.badge.questionmark",
+            title: "Cart is Empty",
+            message: "Add activities from the menu to get started!",
+            actionTitle: nil,
+            action: nil
+        )
+        .frame(height: 200)
+        .padding(.horizontal, 20)
+    }
+    
+    private var orderHistorySection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Order History")
+                .font(.h2)
+                .foregroundColor(.adaptiveWhite)
+                .padding(.horizontal, 20)
+            
+            if viewModel.orders.isEmpty {
+                emptyOrdersView
+            } else {
+                ordersList
+            }
+        }
+        .padding(.top, 24)
+    }
+    
+    private var emptyOrdersView: some View {
+        EmptyStateView(
+            icon: "clock.badge.questionmark",
+            title: "No Orders Yet",
+            message: "Your order history will appear here once you place your first order.",
+            actionTitle: nil,
+            action: nil
+        )
+        .frame(height: 200)
+        .padding(.horizontal, 20)
+    }
+    
+    private var ordersList: some View {
+        VStack(spacing: 12) {
+            ForEach(viewModel.orders) { order in
+                OrderCard(order: order)
+            }
+        }
+        .padding(.horizontal, 20)
     }
 }
 

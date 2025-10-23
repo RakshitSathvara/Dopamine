@@ -6,10 +6,10 @@
 //
 
 import SwiftUI
+import FirebaseAuth
 
 struct HomeView: View {
     @StateObject private var viewModel = HomeViewModel()
-    @StateObject private var authViewModel = AuthViewModel()
     @State private var showToast = false
     @State private var userName: String = ""
     @State private var currentStreak: Int = 0
@@ -124,7 +124,7 @@ struct HomeView: View {
             )
             .task {
                 // Load user data
-                if let userId = authViewModel.currentUser?.uid {
+                if let userId = AuthService.shared.currentUser?.uid {
                     do {
                         let user = try await UserService.shared.fetchUserProfile(userId: userId)
                         userName = user.name

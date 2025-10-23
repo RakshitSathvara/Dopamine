@@ -9,7 +9,6 @@ import SwiftUI
 
 struct MainTabView: View {
     @State private var selectedTab = 0
-    @State private var cart: [Activity] = []
 
     var body: some View {
         ZStack {
@@ -21,7 +20,7 @@ struct MainTabView: View {
                     }
 
                 NavigationStack {
-                    MenuView(cart: $cart)
+                    MenuView()
                 }
                 .tag(1)
                 .tabItem {

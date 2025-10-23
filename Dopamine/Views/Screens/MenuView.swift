@@ -334,6 +334,6 @@ struct MenuActivityCard: View {
 
 #Preview {
     NavigationStack {
-        MenuView(cart: .constant([]))
+        MenuView()
     }
 }
