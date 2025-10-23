@@ -203,6 +203,46 @@ class ProfileViewModel: ObservableObject {
         }
     }
 
+    // MARK: - Account Management
+
+    func logout() async throws {
+        do {
+            try authService.signOut()
+            print("User logged out successfully")
+        } catch {
+            errorMessage = "Failed to logout"
+            throw error
+        }
+    }
+
+    func deleteAccount() async throws {
+        guard let userId = authService.currentUser?.uid else {
+            throw NSError(domain: "ProfileViewModel", code: 401, userInfo: [NSLocalizedDescriptionKey: "No user logged in"])
+        }
+
+        isLoading = true
+
+        do {
+            // Delete user profile from Firestore
+            try await userService.deleteUserProfile(userId: userId)
+
+            // Delete Firebase Auth user
+            try await authService.currentUser?.delete()
+
+            // Clear local state
+            user = nil
+            cart = nil
+            orders = []
+
+            isLoading = false
+            print("User account deleted successfully")
+        } catch {
+            isLoading = false
+            errorMessage = "Failed to delete account"
+            throw error
+        }
+    }
+
     // MARK: - Helper Methods
 
     private func showSuccess(_ message: String) {
