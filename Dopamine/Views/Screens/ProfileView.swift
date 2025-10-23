@@ -9,11 +9,8 @@ import SwiftUI
 
 struct ProfileView: View {
     @StateObject private var viewModel = ProfileViewModel()
-    @StateObject private var themeManager = ThemeManager.shared
-    @State private var showThemeSelector = false
     @State private var cartActivities: [Activity] = []
-    @State private var showLogoutConfirmation = false
-    @State private var showDeleteAccountConfirmation = false
+    @State private var showSettings = false
 
     var body: some View {
         NavigationStack {
@@ -25,11 +22,15 @@ struct ProfileView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
                         HapticManager.impact(.light)
+                        showSettings = true
                     } label: {
                         Image(systemName: "gearshape.fill")
                             .foregroundColor(.adaptiveWhite)
                     }
                 }
+            }
+            .navigationDestination(isPresented: $showSettings) {
+                SettingsView()
             }
             .overlay(
                 Group {
@@ -94,49 +95,11 @@ struct ProfileView: View {
         VStack(spacing: 24) {
             profileHeaderSection
 
-            ThemeSelectorCard(
-                currentTheme: $themeManager.currentTheme,
-                showThemeSelector: $showThemeSelector
-            )
-            .padding(.horizontal, 20)
-
-            accountManagementSection
-
             cartSection
             orderHistorySection
         }
         .padding(.top, 16)
         .padding(.bottom, 100)
-        .alert("Logout", isPresented: $showLogoutConfirmation) {
-            Button("Cancel", role: .cancel) { }
-            Button("Logout", role: .destructive) {
-                Task {
-                    do {
-                        try await viewModel.logout()
-                        HapticManager.notification(.success)
-                    } catch {
-                        HapticManager.notification(.error)
-                    }
-                }
-            }
-        } message: {
-            Text("Are you sure you want to logout?")
-        }
-        .alert("Delete Account", isPresented: $showDeleteAccountConfirmation) {
-            Button("Cancel", role: .cancel) { }
-            Button("Delete", role: .destructive) {
-                Task {
-                    do {
-                        try await viewModel.deleteAccount()
-                        HapticManager.notification(.success)
-                    } catch {
-                        HapticManager.notification(.error)
-                    }
-                }
-            }
-        } message: {
-            Text("Are you sure you want to delete your account? This action cannot be undone and all your data will be permanently deleted.")
-        }
     }
     
     @ViewBuilder
@@ -158,71 +121,6 @@ struct ProfileView: View {
             )
             .frame(height: 300)
         }
-    }
-
-    private var accountManagementSection: some View {
-        VStack(spacing: 12) {
-            // Logout Button
-            Button {
-                HapticManager.impact(.light)
-                showLogoutConfirmation = true
-            } label: {
-                HStack {
-                    Image(systemName: "rectangle.portrait.and.arrow.right")
-                        .foregroundColor(.adaptiveWhite)
-
-                    Text("Logout")
-                        .font(.h3)
-                        .foregroundColor(.adaptiveWhite)
-
-                    Spacer()
-
-                    Image(systemName: "chevron.right")
-                        .foregroundColor(.adaptiveTertiary)
-                        .font(.caption)
-                }
-                .padding(16)
-                .background(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .fill(.ultraThinMaterial)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .stroke(Color.borderLight, lineWidth: 1)
-                )
-            }
-
-            // Delete Account Button
-            Button {
-                HapticManager.impact(.light)
-                showDeleteAccountConfirmation = true
-            } label: {
-                HStack {
-                    Image(systemName: "trash.fill")
-                        .foregroundColor(.red)
-
-                    Text("Delete Account")
-                        .font(.h3)
-                        .foregroundColor(.red)
-
-                    Spacer()
-
-                    Image(systemName: "chevron.right")
-                        .foregroundColor(.adaptiveTertiary)
-                        .font(.caption)
-                }
-                .padding(16)
-                .background(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .fill(.ultraThinMaterial)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .stroke(Color.red.opacity(0.3), lineWidth: 1)
-                )
-            }
-        }
-        .padding(.horizontal, 20)
     }
 
     private var cartSection: some View {
