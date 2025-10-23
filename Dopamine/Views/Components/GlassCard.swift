@@ -27,8 +27,19 @@ struct GlassCard<Content: View>: View {
             )
             .overlay(
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .stroke(Color.borderLight, lineWidth: 1)
+                    .strokeBorder(
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                Color.white.opacity(0.3),
+                                Color.gray.opacity(0.2)
+                            ]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1.5
+                    )
             )
-            .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: 4)
+            .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 2)
+            .shadow(color: Color.black.opacity(0.04), radius: 16, x: 0, y: 4)
     }
 }

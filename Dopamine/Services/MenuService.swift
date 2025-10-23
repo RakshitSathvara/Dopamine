@@ -7,7 +7,7 @@
 
 import Foundation
 import FirebaseFirestore
-import Combine
+internal import Combine
 
 /// Service responsible for managing dopamine menu configuration in Firestore
 @MainActor

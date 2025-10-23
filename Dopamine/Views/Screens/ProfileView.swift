@@ -20,8 +20,6 @@ struct ProfileView: View {
             ScrollView {
                 contentView
             }
-            .navigationTitle("Profile")
-            .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
