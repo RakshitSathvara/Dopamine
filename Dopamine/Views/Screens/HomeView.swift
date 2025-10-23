@@ -173,6 +173,12 @@ struct HomeView: View {
                     currentStreak = 0
                 }
             }
+            .onAppear {
+                // Refresh activities when navigating back to home screen
+                Task {
+                    await viewModel.refresh()
+                }
+            }
         }
     }
 }

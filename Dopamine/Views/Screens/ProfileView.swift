@@ -71,6 +71,12 @@ struct ProfileView: View {
                     }
                 }
             }
+            .onAppear {
+                // Refresh profile, cart, and orders when navigating back
+                Task {
+                    await viewModel.refresh()
+                }
+            }
         }
     }
     

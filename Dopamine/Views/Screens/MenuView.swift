@@ -59,6 +59,12 @@ struct MenuView: View {
             ToastView(message: toastMessage, isShowing: $showToast)
                 .animation(.spring(), value: showToast)
         )
+        .onAppear {
+            // Refresh menu configuration and activities when navigating back
+            Task {
+                await viewModel.refresh()
+            }
+        }
     }
 
     private func handleAddCategory(_ category: ActivityCategory, _ info: MenuCategoryInfo) {
