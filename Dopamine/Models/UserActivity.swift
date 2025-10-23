@@ -17,7 +17,12 @@ struct UserActivity: Identifiable, Codable {
     let scheduledTime: Date
     let scheduledDate: Date
     let createdAt: Date
-    var isOnHomeScreen: Bool
+    private var _isOnHomeScreen: Bool?
+    
+    var isOnHomeScreen: Bool {
+        get { _isOnHomeScreen ?? false }
+        set { _isOnHomeScreen = newValue }
+    }
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -28,7 +33,7 @@ struct UserActivity: Identifiable, Codable {
         case scheduledTime
         case scheduledDate
         case createdAt
-        case isOnHomeScreen
+        case _isOnHomeScreen = "isOnHomeScreen"
     }
 
     init(id: String? = nil, userId: String, title: String, category: ActivityCategory, durationMinutes: Int, scheduledTime: Date, scheduledDate: Date, createdAt: Date = Date(), isOnHomeScreen: Bool = false) {
@@ -40,7 +45,7 @@ struct UserActivity: Identifiable, Codable {
         self.scheduledTime = scheduledTime
         self.scheduledDate = scheduledDate
         self.createdAt = createdAt
-        self.isOnHomeScreen = isOnHomeScreen
+        self._isOnHomeScreen = isOnHomeScreen
     }
 
     var displayDuration: String {
