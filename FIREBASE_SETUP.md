@@ -109,6 +109,15 @@ service cloud.firestore {
       allow write: if false; // Only admins can write (use Firebase Console)
     }
 
+    match /userActivities/{activityId} {
+      allow read: if isAuthenticated() && 
+        resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && 
+        request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAuthenticated() && 
+        resource.data.userId == request.auth.uid;
+    }
+
     match /carts/{userId} {
       allow read, write: if isOwner(userId);
     }
@@ -130,6 +139,34 @@ service cloud.firestore {
 
 Click **Publish** to save the rules.
 
+### Set Up Firestore Indexes
+
+For efficient queries, you need to create composite indexes:
+
+1. Go to **Firestore Database** → **Indexes** tab
+2. Click **Create Index**
+3. Create the following index for user activities:
+
+**Index 1: User Activities Query**
+- Collection ID: `userActivities`
+- Fields:
+  - Field: `userId` | Order: **Ascending**
+  - Field: `createdAt` | Order: **Descending**
+- Query scope: **Collection**
+
+**Index 2: User Activities by Category**
+- Collection ID: `userActivities`
+- Fields:
+  - Field: `userId` | Order: **Ascending**
+  - Field: `category` | Order: **Ascending**
+  - Field: `createdAt` | Order: **Descending**
+- Query scope: **Collection**
+
+4. Click **Create** for each index
+5. Wait for indexes to build (usually takes a few minutes)
+
+> **Note**: If you encounter an index error while using the app, Firebase will provide a direct link in the console to create the required index automatically.
+
 ## Step 7: Set Up Firebase Storage (Optional)
 
 1. In Firebase Console, go to **Storage**
@@ -137,7 +174,16 @@ Click **Publish** to save the rules.
 3. Choose **Start in test mode**
 4. Click **Next** and **Done**
 
-## Step 8: Seed Sample Data
+## Step 8: Create Required Indexes
+
+Before using the app, create the required Firestore indexes:
+
+1. **Click the error link**: When you first run the app, Firebase will show index requirement errors in the console with direct links
+2. **Or create manually** following the index configurations in Step 6 above
+3. **Wait for completion**: Index building typically takes 2-5 minutes
+4. **Verify**: Check the Indexes tab to see "Enabled" status
+
+## Step 9: Seed Sample Data
 
 After setting up Firestore, you can seed sample activities and menu configuration:
 
@@ -184,7 +230,7 @@ To set up the dopamine menu categories with descriptions:
 
 This will create a `menu/categories` document with all category descriptions (Starters, Mains, Sides, Desserts, Specials).
 
-## Step 9: Configure Email Link Settings
+## Step 10: Configure Email Link Settings
 
 For email link authentication to work properly:
 
@@ -198,7 +244,7 @@ For email link authentication to work properly:
    - Enter your domain name
    - Click **Add**
 
-## Step 10: Build and Run
+## Step 11: Build and Run
 
 1. Open `Dopamine.xcodeproj` in Xcode
 2. Select your target device or simulator

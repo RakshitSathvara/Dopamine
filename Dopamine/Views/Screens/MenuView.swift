@@ -7,6 +7,7 @@
 
 import SwiftUI
 import FirebaseFirestore
+import FirebaseAuth
 
 struct MenuView: View {
     @StateObject private var viewModel = MenuViewModel()
@@ -235,8 +236,6 @@ struct CategoryBottomSheet: View {
 
     @State private var title = ""
     @State private var durationMinutes = 0
-    @State private var selectedTime = Date()
-    @State private var selectedDate = Date()
     @State private var isSubmitting = false
     @FocusState private var focusedField: Field?
 
@@ -290,20 +289,6 @@ struct CategoryBottomSheet: View {
                             durationMinutes: $durationMinutes,
                             icon: "clock.fill",
                             placeholder: "Duration"
-                        )
-
-                        // Time Picker
-                        TimePickerField(
-                            selectedTime: $selectedTime,
-                            icon: "clock.fill",
-                            label: "Time"
-                        )
-
-                        // Date Picker
-                        DatePickerField(
-                            selectedDate: $selectedDate,
-                            icon: "calendar",
-                            label: "Date"
                         )
                     }
                     .padding(.horizontal, 20)
@@ -383,8 +368,8 @@ struct CategoryBottomSheet: View {
                 title: title,
                 category: category,
                 durationMinutes: durationMinutes,
-                scheduledTime: selectedTime,
-                scheduledDate: selectedDate
+                scheduledTime: Date(),
+                scheduledDate: Date()
             )
 
             HapticManager.notification(.success)

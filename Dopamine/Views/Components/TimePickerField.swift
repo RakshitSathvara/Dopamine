@@ -104,7 +104,7 @@ struct TimePickerSheet: View {
                     Button(action: onSave) {
                         Text("Done")
                             .font(.h3)
-                            .foregroundColor(.adaptiveWhite)
+                            .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 16)
                             .background(
@@ -112,6 +112,7 @@ struct TimePickerSheet: View {
                                     .fill(Color.accentColor)
                             )
                     }
+                    .buttonStyle(PlainButtonStyle())
 
                     Button(action: onCancel) {
                         Text("Cancel")
@@ -124,6 +125,7 @@ struct TimePickerSheet: View {
                                     .fill(.ultraThinMaterial)
                             )
                     }
+                    .buttonStyle(PlainButtonStyle())
                 }
                 .padding(.horizontal, 20)
                 .padding(.bottom, 20)
