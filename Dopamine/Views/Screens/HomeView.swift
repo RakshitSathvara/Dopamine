@@ -64,6 +64,13 @@ struct HomeView: View {
                                                     Task {
                                                         await viewModel.removeUserActivityFromHome(userActivity.id ?? "")
                                                     }
+                                                },
+                                                onAddToCart: {
+                                                    toastMessage = "\(userActivity.title) is already in your activities!"
+                                                    showToast = true
+                                                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                                                        showToast = false
+                                                    }
                                                 }
                                             )
                                             .padding(.horizontal, 20)
@@ -238,6 +245,7 @@ struct HomeHeader: View {
 struct UserActivityCard: View {
     let userActivity: UserActivity
     let onRemove: () -> Void
+    let onAddToCart: (() -> Void)?
     @State private var isRunning = false
 
     var body: some View {
@@ -289,16 +297,32 @@ struct UserActivityCard: View {
                     }
                     .buttonStyle(PlainButtonStyle())
 
-                    // Cancel Button
-                    Button(action: {
-                        HapticManager.impact(.light)
-                        onRemove()
-                    }) {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 24))
-                            .foregroundColor(.red)
+                    // Vertical stack for Cancel and Cart icons
+                    VStack(spacing: 8) {
+                        // Cancel Button
+                        Button(action: {
+                            HapticManager.impact(.light)
+                            onRemove()
+                        }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 24))
+                                .foregroundColor(.red)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        
+                        // Cart Icon Button
+                        if let onAddToCart = onAddToCart {
+                            Button(action: {
+                                HapticManager.impact(.light)
+                                onAddToCart()
+                            }) {
+                                Image(systemName: "cart.badge.plus")
+                                    .font(.system(size: 24))
+                                    .foregroundColor(.green)
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                        }
                     }
-                    .buttonStyle(PlainButtonStyle())
                 }
             }
             .padding(16)
@@ -358,24 +382,26 @@ struct ActivityCard: View {
 
                 Spacer()
 
+                Text(activity.icon)
+                    .font(.system(size: 32))
+                    .padding(.trailing, 8)
+
                 // Cart Icon Button
                 Button(action: {
                     HapticManager.impact(.light)
                     onAddToCart()
                 }) {
                     Image(systemName: "cart.badge.plus")
-                        .font(.system(size: 20))
-                        .foregroundColor(.green)
-                        .padding(8)
+                        .font(.system(size: 22, weight: .semibold))
+                        .foregroundColor(.white)
+                        .padding(10)
                         .background(
                             Circle()
-                                .fill(Color.green.opacity(0.2))
+                                .fill(Color.green)
                         )
+                        .shadow(color: .green.opacity(0.4), radius: 8, x: 0, y: 2)
                 }
                 .buttonStyle(PlainButtonStyle())
-
-                Text(activity.icon)
-                    .font(.system(size: 32))
             }
             .padding(16)
         }
