@@ -11,6 +11,7 @@ import FirebaseAuth
 struct HomeView: View {
     @StateObject private var viewModel = HomeViewModel()
     @State private var showToast = false
+    @State private var toastMessage = "Added to cart!"
     @State private var userName: String = ""
     @State private var currentStreak: Int = 0
 
@@ -86,6 +87,16 @@ struct HomeView: View {
                                                 isSelected: viewModel.isActivitySelected(activity.id),
                                                 onToggle: {
                                                     viewModel.toggleActivitySelection(activity.id)
+                                                },
+                                                onAddToCart: {
+                                                    Task {
+                                                        await viewModel.addToCart(activity.id)
+                                                        toastMessage = "\(activity.name) added to cart!"
+                                                        showToast = true
+                                                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                                                            showToast = false
+                                                        }
+                                                    }
                                                 }
                                             )
                                             .padding(.horizontal, 20)
@@ -137,6 +148,7 @@ struct HomeView: View {
                                 action: {
                                     Task {
                                         await viewModel.addSelectedToCart()
+                                        toastMessage = "Activities added to cart!"
                                         showToast = true
                                         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                                             showToast = false
@@ -153,7 +165,7 @@ struct HomeView: View {
             }
             .navigationBarTitleDisplayMode(.inline)
             .overlay(
-                ToastView(message: "Added to cart!", isShowing: $showToast)
+                ToastView(message: toastMessage, isShowing: $showToast)
                     .animation(.spring(), value: showToast)
             )
             .task {
@@ -298,6 +310,7 @@ struct ActivityCard: View {
     let activity: Activity
     let isSelected: Bool
     let onToggle: () -> Void
+    let onAddToCart: () -> Void
 
     var body: some View {
         GlassCard(cornerRadius: 20) {
@@ -344,6 +357,22 @@ struct ActivityCard: View {
                 }
 
                 Spacer()
+
+                // Cart Icon Button
+                Button(action: {
+                    HapticManager.impact(.light)
+                    onAddToCart()
+                }) {
+                    Image(systemName: "cart.badge.plus")
+                        .font(.system(size: 20))
+                        .foregroundColor(.green)
+                        .padding(8)
+                        .background(
+                            Circle()
+                                .fill(Color.green.opacity(0.2))
+                        )
+                }
+                .buttonStyle(PlainButtonStyle())
 
                 Text(activity.icon)
                     .font(.system(size: 32))
