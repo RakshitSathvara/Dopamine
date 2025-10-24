@@ -208,26 +208,16 @@ struct HomeHeader: View {
 
                 Spacer()
 
-                // Notification and Profile
-                HStack(spacing: 16) {
-                    Button {
-                        HapticManager.impact(.light)
-                    } label: {
-                        Image(systemName: "bell.fill")
-                            .font(.title3)
+                // Profile
+                Circle()
+                    .fill(Color.purple.opacity(0.3))
+                    .frame(width: 36, height: 36)
+                    .overlay {
+                        Text(String(userName.prefix(1)))
+                            .font(.bodySmall)
+                            .fontWeight(.semibold)
                             .foregroundColor(.adaptiveWhite)
                     }
-
-                    Circle()
-                        .fill(Color.purple.opacity(0.3))
-                        .frame(width: 36, height: 36)
-                        .overlay {
-                            Text(String(userName.prefix(1)))
-                                .font(.bodySmall)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.adaptiveWhite)
-                        }
-                }
             }
         }
     }
@@ -236,6 +226,7 @@ struct HomeHeader: View {
 struct UserActivityCard: View {
     let userActivity: UserActivity
     let onRemove: () -> Void
+    @State private var isRunning = false
 
     var body: some View {
         GlassCard(cornerRadius: 20) {
@@ -263,15 +254,40 @@ struct UserActivityCard: View {
 
                 Spacer()
 
-                Button(action: {
-                    HapticManager.impact(.light)
-                    onRemove()
-                }) {
-                    Image(systemName: "cart.badge.plus")
-                        .font(.system(size: 24))
-                        .foregroundColor(.purple)
+                HStack(spacing: 12) {
+                    // Start/Stop Button
+                    Button(action: {
+                        HapticManager.impact(.light)
+                        isRunning.toggle()
+                    }) {
+                        HStack(spacing: 6) {
+                            Image(systemName: isRunning ? "stop.fill" : "play.fill")
+                                .font(.system(size: 14))
+                            Text(isRunning ? "Stop" : "Start")
+                                .font(.caption)
+                                .fontWeight(.semibold)
+                        }
+                        .foregroundColor(.adaptiveWhite)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .fill(isRunning ? Color.red.opacity(0.6) : Color.green.opacity(0.6))
+                        )
+                    }
+                    .buttonStyle(PlainButtonStyle())
+
+                    // Cancel Button
+                    Button(action: {
+                        HapticManager.impact(.light)
+                        onRemove()
+                    }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 24))
+                            .foregroundColor(.red)
+                    }
+                    .buttonStyle(PlainButtonStyle())
                 }
-                .buttonStyle(PlainButtonStyle())
             }
             .padding(16)
         }
