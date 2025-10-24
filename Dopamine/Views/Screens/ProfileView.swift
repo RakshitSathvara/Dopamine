@@ -101,7 +101,6 @@ struct ProfileView: View {
         VStack(spacing: 24) {
             profileHeaderSection
 
-            userActivitiesSection
             cartSection
             orderHistorySection
         }
@@ -130,54 +129,6 @@ struct ProfileView: View {
         }
     }
 
-    private var userActivitiesSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Your Activities")
-                .font(.h2)
-                .foregroundColor(.adaptiveWhite)
-                .padding(.horizontal, 20)
-            
-            if !viewModel.userActivities.isEmpty {
-                userActivitiesList
-            } else {
-                emptyUserActivitiesView
-            }
-        }
-    }
-    
-    private var userActivitiesList: some View {
-        VStack(spacing: 12) {
-            ForEach(viewModel.userActivities) { userActivity in
-                ProfileUserActivityCard(
-                    userActivity: userActivity,
-                    onAddToHome: {
-                        Task {
-                            await viewModel.addUserActivityToHome(userActivity.id ?? "")
-                        }
-                    },
-                    onDelete: {
-                        Task {
-                            await viewModel.deleteUserActivity(userActivity.id ?? "")
-                        }
-                    }
-                )
-            }
-        }
-        .padding(.horizontal, 20)
-    }
-    
-    private var emptyUserActivitiesView: some View {
-        EmptyStateView(
-            icon: "square.stack.3d.up.slash",
-            title: "No Activities Yet",
-            message: "Create custom activities from the menu to see them here!",
-            actionTitle: nil,
-            action: nil
-        )
-        .frame(height: 180)
-        .padding(.horizontal, 20)
-    }
-    
     private var cartSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Your Cart")
