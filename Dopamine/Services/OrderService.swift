@@ -44,11 +44,12 @@ class OrderService: ObservableObject {
         }
     }
 
-    func addToCart(userId: String, activityId: String) async throws {
+    func addToCart(userId: String, activityId: String, isUserActivity: Bool = false) async throws {
         let cartItem = CartItem(
             id: UUID().uuidString,
             activityId: activityId,
-            addedAt: Date()
+            addedAt: Date(),
+            isUserActivity: isUserActivity
         )
 
         do {
@@ -65,7 +66,7 @@ class OrderService: ObservableObject {
                 try cartRef.setData(from: newCart)
             }
 
-            print("Activity added to cart: \(activityId)")
+            print("\(isUserActivity ? "User activity" : "Activity") added to cart: \(activityId)")
 
             // Refresh cart
             try await fetchCart(userId: userId)

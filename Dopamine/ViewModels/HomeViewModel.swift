@@ -126,13 +126,30 @@ class HomeViewModel: ObservableObject {
         }
 
         do {
-            try await orderService.addToCart(userId: userId, activityId: activityId)
+            try await orderService.addToCart(userId: userId, activityId: activityId, isUserActivity: false)
             await loadCart()
             HapticManager.notification(.success)
         } catch {
             errorMessage = "Failed to add item to cart"
             HapticManager.notification(.error)
             print("Error adding to cart: \(error.localizedDescription)")
+        }
+    }
+    
+    func addUserActivityToCart(_ userActivityId: String) async {
+        guard let userId = authService.currentUser?.uid else {
+            errorMessage = "Please log in to add items to cart"
+            return
+        }
+
+        do {
+            try await orderService.addToCart(userId: userId, activityId: userActivityId, isUserActivity: true)
+            await loadCart()
+            HapticManager.notification(.success)
+        } catch {
+            errorMessage = "Failed to add item to cart"
+            HapticManager.notification(.error)
+            print("Error adding user activity to cart: \(error.localizedDescription)")
         }
     }
 

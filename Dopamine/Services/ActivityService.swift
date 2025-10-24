@@ -280,6 +280,21 @@ class ActivityService: ObservableObject {
         }
     }
 
+    func getUserActivity(by id: String) async throws -> UserActivity? {
+        do {
+            let document = try await db.collection(userActivitiesCollection).document(id).getDocument()
+            
+            guard document.exists else {
+                return nil
+            }
+            
+            return try document.data(as: UserActivity.self)
+        } catch {
+            print("Error fetching user activity: \(error.localizedDescription)")
+            throw error
+        }
+    }
+    
     func fetchUserActivities(userId: String) async throws -> [UserActivity] {
         do {
             let snapshot = try await db.collection(userActivitiesCollection)

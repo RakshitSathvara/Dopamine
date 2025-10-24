@@ -10,8 +10,6 @@ import FirebaseAuth
 
 struct HomeView: View {
     @StateObject private var viewModel = HomeViewModel()
-    @State private var showToast = false
-    @State private var toastMessage = "Added to cart!"
     @State private var userName: String = ""
     @State private var currentStreak: Int = 0
 
@@ -58,22 +56,15 @@ struct HomeView: View {
                                             .padding(.horizontal, 20)
 
                                         ForEach(viewModel.userActivities) { userActivity in
-                                            UserActivityCard(
-                                                userActivity: userActivity,
-                                                onRemove: {
-                                                    Task {
-                                                        await viewModel.removeUserActivityFromHome(userActivity.id ?? "")
-                                                    }
-                                                },
-                                                onAddToCart: {
-                                                    toastMessage = "\(userActivity.title) is already in your activities!"
-                                                    showToast = true
-                                                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                                                        showToast = false
-                                                    }
-                                                }
-                                            )
-                                            .padding(.horizontal, 20)
+                        UserActivityCard(
+                            userActivity: userActivity,
+                            onRemove: {
+                                Task {
+                                    await viewModel.removeUserActivityFromHome(userActivity.id ?? "")
+                                }
+                            }
+                        )
+                        .padding(.horizontal, 20)
                                         }
                                     }
                                     .padding(.top, 24)
@@ -94,16 +85,6 @@ struct HomeView: View {
                                                 isSelected: viewModel.isActivitySelected(activity.id),
                                                 onToggle: {
                                                     viewModel.toggleActivitySelection(activity.id)
-                                                },
-                                                onAddToCart: {
-                                                    Task {
-                                                        await viewModel.addToCart(activity.id)
-                                                        toastMessage = "\(activity.name) added to cart!"
-                                                        showToast = true
-                                                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                                                            showToast = false
-                                                        }
-                                                    }
                                                 }
                                             )
                                             .padding(.horizontal, 20)
@@ -145,36 +126,9 @@ struct HomeView: View {
                         }
                     }
 
-                    // Add to Cart Button (Fixed at bottom)
-                    if !viewModel.selectedActivities.isEmpty {
-                        VStack {
-                            Spacer()
-                            GlassButton(
-                                title: "Add to Cart (\(viewModel.selectedActivities.count))",
-                                icon: "cart.badge.plus",
-                                action: {
-                                    Task {
-                                        await viewModel.addSelectedToCart()
-                                        toastMessage = "Activities added to cart!"
-                                        showToast = true
-                                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                                            showToast = false
-                                        }
-                                    }
-                                }
-                            )
-                            .padding(.horizontal, 20)
-                            .padding(.bottom, 16)
-                            .transition(.move(edge: .bottom).combined(with: .opacity))
-                        }
-                    }
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
-            .overlay(
-                ToastView(message: toastMessage, isShowing: $showToast)
-                    .animation(.spring(), value: showToast)
-            )
             .task {
                 // Load user data
                 if let userId = AuthService.shared.currentUser?.uid {
@@ -245,7 +199,6 @@ struct HomeHeader: View {
 struct UserActivityCard: View {
     let userActivity: UserActivity
     let onRemove: () -> Void
-    let onAddToCart: (() -> Void)?
     @State private var isRunning = false
 
     var body: some View {
@@ -297,32 +250,16 @@ struct UserActivityCard: View {
                     }
                     .buttonStyle(PlainButtonStyle())
 
-                    // Vertical stack for Cancel and Cart icons
-                    VStack(spacing: 8) {
-                        // Cancel Button
-                        Button(action: {
-                            HapticManager.impact(.light)
-                            onRemove()
-                        }) {
-                            Image(systemName: "xmark.circle.fill")
-                                .font(.system(size: 24))
-                                .foregroundColor(.red)
-                        }
-                        .buttonStyle(PlainButtonStyle())
-                        
-                        // Cart Icon Button
-                        if let onAddToCart = onAddToCart {
-                            Button(action: {
-                                HapticManager.impact(.light)
-                                onAddToCart()
-                            }) {
-                                Image(systemName: "cart.badge.plus")
-                                    .font(.system(size: 24))
-                                    .foregroundColor(.green)
-                            }
-                            .buttonStyle(PlainButtonStyle())
-                        }
+                    // Cancel Button
+                    Button(action: {
+                        HapticManager.impact(.light)
+                        onRemove()
+                    }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 24))
+                            .foregroundColor(.red)
                     }
+                    .buttonStyle(PlainButtonStyle())
                 }
             }
             .padding(16)
@@ -334,7 +271,6 @@ struct ActivityCard: View {
     let activity: Activity
     let isSelected: Bool
     let onToggle: () -> Void
-    let onAddToCart: () -> Void
 
     var body: some View {
         GlassCard(cornerRadius: 20) {
@@ -385,58 +321,8 @@ struct ActivityCard: View {
                 Text(activity.icon)
                     .font(.system(size: 32))
                     .padding(.trailing, 8)
-
-                // Cart Icon Button
-                Button(action: {
-                    HapticManager.impact(.light)
-                    onAddToCart()
-                }) {
-                    Image(systemName: "cart.badge.plus")
-                        .font(.system(size: 22, weight: .semibold))
-                        .foregroundColor(.white)
-                        .padding(10)
-                        .background(
-                            Circle()
-                                .fill(Color.green)
-                        )
-                        .shadow(color: .green.opacity(0.4), radius: 8, x: 0, y: 2)
-                }
-                .buttonStyle(PlainButtonStyle())
             }
             .padding(16)
-        }
-    }
-}
-
-struct ToastView: View {
-    let message: String
-    @Binding var isShowing: Bool
-
-    var body: some View {
-        VStack {
-            if isShowing {
-                HStack {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundColor(.green)
-
-                    Text(message)
-                        .font(.bodySmall)
-                        .foregroundColor(.adaptiveWhite)
-                }
-                .padding()
-                .background(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(.ultraThinMaterial)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .stroke(Color.borderLight, lineWidth: 1)
-                )
-                .shadow(color: .black.opacity(0.2), radius: 10)
-                .padding(.top, 50)
-            }
-
-            Spacer()
         }
     }
 }

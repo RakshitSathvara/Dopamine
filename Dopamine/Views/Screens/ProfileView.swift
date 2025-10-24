@@ -10,6 +10,7 @@ import SwiftUI
 struct ProfileView: View {
     @StateObject private var viewModel = ProfileViewModel()
     @State private var cartActivities: [Activity] = []
+    @State private var cartUserActivities: [UserActivity] = []
     @State private var showSettings = false
 
     var body: some View {
@@ -45,8 +46,14 @@ struct ProfileView: View {
                 if let cart = viewModel.cart {
                     for cartItem in cart.items {
                         do {
-                            if let activity = try await ActivityService.shared.getActivity(by: cartItem.activityId) {
-                                cartActivities.append(activity)
+                            if cartItem.isUserActivity {
+                                if let userActivity = try await ActivityService.shared.getUserActivity(by: cartItem.activityId) {
+                                    cartUserActivities.append(userActivity)
+                                }
+                            } else {
+                                if let activity = try await ActivityService.shared.getActivity(by: cartItem.activityId) {
+                                    cartActivities.append(activity)
+                                }
                             }
                         } catch {
                             print("Error loading cart activity: \(error)")
@@ -58,11 +65,18 @@ struct ProfileView: View {
                 // Reload cart activities when cart changes
                 Task {
                     cartActivities.removeAll()
+                    cartUserActivities.removeAll()
                     if let cart = newValue {
                         for cartItem in cart.items {
                             do {
-                                if let activity = try await ActivityService.shared.getActivity(by: cartItem.activityId) {
-                                    cartActivities.append(activity)
+                                if cartItem.isUserActivity {
+                                    if let userActivity = try await ActivityService.shared.getUserActivity(by: cartItem.activityId) {
+                                        cartUserActivities.append(userActivity)
+                                    }
+                                } else {
+                                    if let activity = try await ActivityService.shared.getActivity(by: cartItem.activityId) {
+                                        cartActivities.append(activity)
+                                    }
                                 }
                             } catch {
                                 print("Error loading cart activity: \(error)")
@@ -149,15 +163,28 @@ struct ProfileView: View {
         VStack(spacing: 12) {
             if let cart = viewModel.cart {
                 ForEach(cart.items) { cartItem in
-                    if let activity = cartActivities.first(where: { $0.id == cartItem.activityId }) {
-                        CartItemCard(
-                            activity: activity,
-                            onRemove: {
-                                Task {
-                                    await viewModel.removeFromCart(cartItem.id)
+                    if cartItem.isUserActivity {
+                        if let userActivity = cartUserActivities.first(where: { $0.id == cartItem.activityId }) {
+                            CartUserActivityItemCard(
+                                userActivity: userActivity,
+                                onRemove: {
+                                    Task {
+                                        await viewModel.removeFromCart(cartItem.id)
+                                    }
                                 }
-                            }
-                        )
+                            )
+                        }
+                    } else {
+                        if let activity = cartActivities.first(where: { $0.id == cartItem.activityId }) {
+                            CartItemCard(
+                                activity: activity,
+                                onRemove: {
+                                    Task {
+                                        await viewModel.removeFromCart(cartItem.id)
+                                    }
+                                }
+                            )
+                        }
                     }
                 }
             }
@@ -174,23 +201,58 @@ struct ProfileView: View {
                 
                 Spacer()
                 
-                Text("\(cartActivities.reduce(0) { $0 + $1.duration }) minutes")
+                Text("\(totalCartDuration) minutes")
                     .font(.h3)
                     .foregroundColor(.adaptiveWhite)
                     .fontWeight(.bold)
             }
             .padding(.horizontal, 20)
             
-            GlassButton(
-                title: "Place Order",
-                icon: "checkmark.circle.fill",
-                action: {
-                    Task {
-                        await viewModel.placeOrder()
+            HStack(spacing: 12) {
+                // Start Button
+                Button(action: {
+                    HapticManager.impact(.light)
+                    // TODO: Add start functionality
+                }) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "play.fill")
+                            .font(.system(size: 16))
+                        Text("Start")
+                            .font(.bodyLarge)
+                            .fontWeight(.semibold)
                     }
-                },
-                isLoading: viewModel.isLoading
-            )
+                    .foregroundColor(.adaptiveWhite)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .fill(Color.green.opacity(0.6))
+                    )
+                }
+                .buttonStyle(PlainButtonStyle())
+                
+                // Stop Button
+                Button(action: {
+                    HapticManager.impact(.light)
+                    // TODO: Add stop functionality
+                }) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "stop.fill")
+                            .font(.system(size: 16))
+                        Text("Stop")
+                            .font(.bodyLarge)
+                            .fontWeight(.semibold)
+                    }
+                    .foregroundColor(.adaptiveWhite)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .fill(Color.red.opacity(0.6))
+                    )
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
             .padding(.horizontal, 20)
         }
     }
@@ -242,6 +304,12 @@ struct ProfileView: View {
             }
         }
         .padding(.horizontal, 20)
+    }
+    
+    private var totalCartDuration: Int {
+        let activityDuration = cartActivities.reduce(0) { $0 + $1.duration }
+        let userActivityDuration = cartUserActivities.reduce(0) { $0 + $1.durationMinutes }
+        return activityDuration + userActivityDuration
     }
 }
 
@@ -351,6 +419,60 @@ struct CartItemCard: View {
                         .foregroundColor(.adaptiveWhite)
 
                     Label("\(activity.duration) min", systemImage: "clock.fill")
+                        .font(.caption)
+                        .foregroundColor(.adaptiveSecondary)
+                }
+
+                Spacer()
+
+                Button(action: onRemove) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.title2)
+                        .foregroundColor(.adaptiveTertiary)
+                }
+            }
+            .padding(12)
+        }
+    }
+}
+
+struct CartUserActivityItemCard: View {
+    let userActivity: UserActivity
+    let onRemove: () -> Void
+
+    var body: some View {
+        GlassCard(cornerRadius: 16) {
+            HStack(spacing: 12) {
+                // Icon badge for user activity
+                Circle()
+                    .fill(Color.purple.opacity(0.3))
+                    .frame(width: 40, height: 40)
+                    .overlay {
+                        Image(systemName: "person.fill")
+                            .font(.system(size: 18))
+                            .foregroundColor(.adaptiveWhite)
+                    }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 6) {
+                        Text(userActivity.title)
+                            .font(.h3)
+                            .foregroundColor(.adaptiveWhite)
+                        
+                        // Badge to indicate it's a custom activity
+                        Text("Custom")
+                            .font(.system(size: 9))
+                            .fontWeight(.semibold)
+                            .foregroundColor(.adaptiveWhite)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(
+                                RoundedRectangle(cornerRadius: 4)
+                                    .fill(Color.purple.opacity(0.6))
+                            )
+                    }
+
+                    Label("\(userActivity.durationMinutes) min", systemImage: "clock.fill")
                         .font(.caption)
                         .foregroundColor(.adaptiveSecondary)
                 }
