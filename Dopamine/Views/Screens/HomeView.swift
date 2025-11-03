@@ -238,20 +238,16 @@ struct UserActivityCard: View {
                         HapticManager.impact(.light)
                         onAddToCart()
                     }) {
-                        HStack(spacing: 6) {
-                            Image(systemName: "cart.badge.plus")
-                                .font(.system(size: 14))
-                            Text("Add to Cart")
-                                .font(.caption)
-                                .fontWeight(.semibold)
-                        }
-                        .foregroundColor(.adaptiveWhite)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(
-                            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                .fill(Color.blue.opacity(0.6))
-                        )
+                        Text("Add to Cart")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.adaptiveWhite)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(
+                                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                    .fill(Color.purple.opacity(0.6))
+                            )
                     }
                     .buttonStyle(PlainButtonStyle())
 
