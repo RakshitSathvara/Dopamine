@@ -58,6 +58,11 @@ struct HomeView: View {
                                         ForEach(viewModel.userActivities) { userActivity in
                         UserActivityCard(
                             userActivity: userActivity,
+                            onAddToCart: {
+                                Task {
+                                    await viewModel.addUserActivityToCart(userActivity.id ?? "")
+                                }
+                            },
                             onRemove: {
                                 Task {
                                     await viewModel.removeUserActivityFromHome(userActivity.id ?? "")
@@ -198,8 +203,8 @@ struct HomeHeader: View {
 
 struct UserActivityCard: View {
     let userActivity: UserActivity
+    let onAddToCart: () -> Void
     let onRemove: () -> Void
-    @State private var isRunning = false
 
     var body: some View {
         GlassCard(cornerRadius: 20) {
@@ -228,15 +233,15 @@ struct UserActivityCard: View {
                 Spacer()
 
                 HStack(spacing: 12) {
-                    // Start/Stop Button
+                    // Add to Cart Button
                     Button(action: {
                         HapticManager.impact(.light)
-                        isRunning.toggle()
+                        onAddToCart()
                     }) {
                         HStack(spacing: 6) {
-                            Image(systemName: isRunning ? "stop.fill" : "play.fill")
+                            Image(systemName: "cart.badge.plus")
                                 .font(.system(size: 14))
-                            Text(isRunning ? "Stop" : "Start")
+                            Text("Add to Cart")
                                 .font(.caption)
                                 .fontWeight(.semibold)
                         }
@@ -245,7 +250,7 @@ struct UserActivityCard: View {
                         .padding(.vertical, 8)
                         .background(
                             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                .fill(isRunning ? Color.red.opacity(0.6) : Color.green.opacity(0.6))
+                                .fill(Color.blue.opacity(0.6))
                         )
                     }
                     .buttonStyle(PlainButtonStyle())
