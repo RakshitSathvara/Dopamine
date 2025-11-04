@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import ActivityKit
 
 struct ProfileView: View {
     @StateObject private var viewModel = ProfileViewModel()
@@ -13,6 +14,16 @@ struct ProfileView: View {
     @State private var cartUserActivities: [UserActivity] = []
     @State private var showSettings = false
     @State private var runningActivities: Set<String> = []
+    @State private var pausedActivities: Set<String> = []
+
+    // Live Activity Manager
+    private var liveActivityManager: LiveActivityManager {
+        if #available(iOS 16.1, *) {
+            return LiveActivityManager.shared
+        } else {
+            fatalError("Live Activities require iOS 16.1+")
+        }
+    }
 
     var body: some View {
         NavigationStack {
@@ -171,17 +182,46 @@ struct ProfileView: View {
                                 isRunning: runningActivities.contains(cartItem.activityId),
                                 onStart: {
                                     runningActivities.insert(cartItem.activityId)
+                                    pausedActivities.remove(cartItem.activityId)
                                     HapticManager.impact(.light)
+
+                                    // Start Live Activity
+                                    if #available(iOS 16.1, *) {
+                                        liveActivityManager.startActivity(
+                                            activityId: cartItem.activityId,
+                                            name: userActivity.title,
+                                            icon: "⭐", // Custom activity icon
+                                            durationMinutes: userActivity.durationMinutes
+                                        )
+                                    }
                                 },
                                 onPause: {
-                                    // TODO: Add pause functionality
+                                    pausedActivities.insert(cartItem.activityId)
                                     HapticManager.impact(.light)
+
+                                    // Pause Live Activity
+                                    if #available(iOS 16.1, *) {
+                                        liveActivityManager.pauseActivity(activityId: cartItem.activityId)
+                                    }
                                 },
                                 onStop: {
                                     runningActivities.remove(cartItem.activityId)
+                                    pausedActivities.remove(cartItem.activityId)
                                     HapticManager.impact(.light)
+
+                                    // Stop Live Activity
+                                    if #available(iOS 16.1, *) {
+                                        liveActivityManager.stopActivity(activityId: cartItem.activityId)
+                                    }
                                 },
                                 onRemove: {
+                                    // Stop Live Activity if running
+                                    if runningActivities.contains(cartItem.activityId) {
+                                        if #available(iOS 16.1, *) {
+                                            liveActivityManager.stopActivity(activityId: cartItem.activityId)
+                                        }
+                                        runningActivities.remove(cartItem.activityId)
+                                    }
                                     Task {
                                         await viewModel.removeFromCart(cartItem.id)
                                     }
@@ -195,17 +235,46 @@ struct ProfileView: View {
                                 isRunning: runningActivities.contains(cartItem.activityId),
                                 onStart: {
                                     runningActivities.insert(cartItem.activityId)
+                                    pausedActivities.remove(cartItem.activityId)
                                     HapticManager.impact(.light)
+
+                                    // Start Live Activity
+                                    if #available(iOS 16.1, *) {
+                                        liveActivityManager.startActivity(
+                                            activityId: cartItem.activityId,
+                                            name: activity.name,
+                                            icon: activity.icon,
+                                            durationMinutes: activity.duration
+                                        )
+                                    }
                                 },
                                 onPause: {
-                                    // TODO: Add pause functionality
+                                    pausedActivities.insert(cartItem.activityId)
                                     HapticManager.impact(.light)
+
+                                    // Pause Live Activity
+                                    if #available(iOS 16.1, *) {
+                                        liveActivityManager.pauseActivity(activityId: cartItem.activityId)
+                                    }
                                 },
                                 onStop: {
                                     runningActivities.remove(cartItem.activityId)
+                                    pausedActivities.remove(cartItem.activityId)
                                     HapticManager.impact(.light)
+
+                                    // Stop Live Activity
+                                    if #available(iOS 16.1, *) {
+                                        liveActivityManager.stopActivity(activityId: cartItem.activityId)
+                                    }
                                 },
                                 onRemove: {
+                                    // Stop Live Activity if running
+                                    if runningActivities.contains(cartItem.activityId) {
+                                        if #available(iOS 16.1, *) {
+                                            liveActivityManager.stopActivity(activityId: cartItem.activityId)
+                                        }
+                                        runningActivities.remove(cartItem.activityId)
+                                    }
                                     Task {
                                         await viewModel.removeFromCart(cartItem.id)
                                     }
