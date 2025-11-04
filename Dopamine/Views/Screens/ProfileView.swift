@@ -12,6 +12,7 @@ struct ProfileView: View {
     @State private var cartActivities: [Activity] = []
     @State private var cartUserActivities: [UserActivity] = []
     @State private var showSettings = false
+    @State private var runningActivities: Set<String> = []
 
     var body: some View {
         NavigationStack {
@@ -167,6 +168,19 @@ struct ProfileView: View {
                         if let userActivity = cartUserActivities.first(where: { $0.id == cartItem.activityId }) {
                             CartUserActivityItemCard(
                                 userActivity: userActivity,
+                                isRunning: runningActivities.contains(cartItem.activityId),
+                                onStart: {
+                                    runningActivities.insert(cartItem.activityId)
+                                    HapticManager.impact(.light)
+                                },
+                                onPause: {
+                                    // TODO: Add pause functionality
+                                    HapticManager.impact(.light)
+                                },
+                                onStop: {
+                                    runningActivities.remove(cartItem.activityId)
+                                    HapticManager.impact(.light)
+                                },
                                 onRemove: {
                                     Task {
                                         await viewModel.removeFromCart(cartItem.id)
@@ -178,6 +192,19 @@ struct ProfileView: View {
                         if let activity = cartActivities.first(where: { $0.id == cartItem.activityId }) {
                             CartItemCard(
                                 activity: activity,
+                                isRunning: runningActivities.contains(cartItem.activityId),
+                                onStart: {
+                                    runningActivities.insert(cartItem.activityId)
+                                    HapticManager.impact(.light)
+                                },
+                                onPause: {
+                                    // TODO: Add pause functionality
+                                    HapticManager.impact(.light)
+                                },
+                                onStop: {
+                                    runningActivities.remove(cartItem.activityId)
+                                    HapticManager.impact(.light)
+                                },
                                 onRemove: {
                                     Task {
                                         await viewModel.removeFromCart(cartItem.id)
@@ -372,77 +399,63 @@ struct StatItem: View {
 
 struct CartItemCard: View {
     let activity: Activity
+    let isRunning: Bool
+    let onStart: () -> Void
+    let onPause: () -> Void
+    let onStop: () -> Void
     let onRemove: () -> Void
 
     var body: some View {
         GlassCard(cornerRadius: 16) {
-            VStack(spacing: 12) {
-                HStack(spacing: 12) {
-                    Text(activity.icon)
-                        .font(.system(size: 28))
+            HStack(spacing: 12) {
+                Text(activity.icon)
+                    .font(.system(size: 28))
 
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(activity.name)
-                            .font(.h3)
-                            .foregroundColor(.adaptiveWhite)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(activity.name)
+                        .font(.h3)
+                        .foregroundColor(.adaptiveWhite)
 
-                        Label("\(activity.duration) min", systemImage: "clock.fill")
-                            .font(.caption)
-                            .foregroundColor(.adaptiveSecondary)
-                    }
-
-                    Spacer()
-
-                    Button(action: onRemove) {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.title2)
-                            .foregroundColor(.adaptiveTertiary)
-                    }
+                    Label("\(activity.duration) min", systemImage: "clock.fill")
+                        .font(.caption)
+                        .foregroundColor(.adaptiveSecondary)
                 }
 
-                // Start/Stop Buttons
-                HStack(spacing: 8) {
-                    // Start Button
-                    Button(action: {
-                        HapticManager.impact(.light)
-                        // TODO: Add start functionality
-                    }) {
-                        HStack(spacing: 6) {
-                            Image(systemName: "play.fill")
-                                .font(.system(size: 12))
-                            Text("Start")
-                                .font(.caption)
-                                .fontWeight(.semibold)
-                        }
-                        .foregroundColor(.adaptiveWhite)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
-                        .background(
-                            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                .fill(Color.green.opacity(0.6))
-                        )
-                    }
-                    .buttonStyle(PlainButtonStyle())
+                Spacer()
 
-                    // Stop Button
-                    Button(action: {
-                        HapticManager.impact(.light)
-                        // TODO: Add stop functionality
-                    }) {
-                        HStack(spacing: 6) {
-                            Image(systemName: "stop.fill")
-                                .font(.system(size: 12))
-                            Text("Stop")
-                                .font(.caption)
-                                .fontWeight(.semibold)
+                // Control Icons
+                HStack(spacing: 16) {
+                    if !isRunning {
+                        // Start Icon
+                        Button(action: onStart) {
+                            Image(systemName: "play.circle.fill")
+                                .font(.system(size: 32))
+                                .foregroundColor(.green)
                         }
-                        .foregroundColor(.adaptiveWhite)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
-                        .background(
-                            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                .fill(Color.red.opacity(0.6))
-                        )
+                        .buttonStyle(PlainButtonStyle())
+                    } else {
+                        // Pause Icon
+                        Button(action: onPause) {
+                            Image(systemName: "pause.circle.fill")
+                                .font(.system(size: 32))
+                                .foregroundColor(.orange)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+
+                        // Stop Icon
+                        Button(action: onStop) {
+                            Image(systemName: "stop.circle.fill")
+                                .font(.system(size: 32))
+                                .foregroundColor(.red)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                    }
+
+                    // Cancel/Remove Icon
+                    Button(action: onRemove) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 32))
+                            .foregroundColor(.adaptiveTertiary)
                     }
                     .buttonStyle(PlainButtonStyle())
                 }
@@ -454,98 +467,84 @@ struct CartItemCard: View {
 
 struct CartUserActivityItemCard: View {
     let userActivity: UserActivity
+    let isRunning: Bool
+    let onStart: () -> Void
+    let onPause: () -> Void
+    let onStop: () -> Void
     let onRemove: () -> Void
 
     var body: some View {
         GlassCard(cornerRadius: 16) {
-            VStack(spacing: 12) {
-                HStack(spacing: 12) {
-                    // Icon badge for user activity
-                    Circle()
-                        .fill(Color.purple.opacity(0.3))
-                        .frame(width: 40, height: 40)
-                        .overlay {
-                            Image(systemName: "person.fill")
-                                .font(.system(size: 18))
-                                .foregroundColor(.adaptiveWhite)
-                        }
-
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack(spacing: 6) {
-                            Text(userActivity.title)
-                                .font(.h3)
-                                .foregroundColor(.adaptiveWhite)
-
-                            // Badge to indicate it's a custom activity
-                            Text("Custom")
-                                .font(.system(size: 9))
-                                .fontWeight(.semibold)
-                                .foregroundColor(.adaptiveWhite)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 4)
-                                        .fill(Color.purple.opacity(0.6))
-                                )
-                        }
-
-                        Label("\(userActivity.durationMinutes) min", systemImage: "clock.fill")
-                            .font(.caption)
-                            .foregroundColor(.adaptiveSecondary)
+            HStack(spacing: 12) {
+                // Icon badge for user activity
+                Circle()
+                    .fill(Color.purple.opacity(0.3))
+                    .frame(width: 40, height: 40)
+                    .overlay {
+                        Image(systemName: "person.fill")
+                            .font(.system(size: 18))
+                            .foregroundColor(.adaptiveWhite)
                     }
 
-                    Spacer()
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 6) {
+                        Text(userActivity.title)
+                            .font(.h3)
+                            .foregroundColor(.adaptiveWhite)
 
-                    Button(action: onRemove) {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.title2)
-                            .foregroundColor(.adaptiveTertiary)
+                        // Badge to indicate it's a custom activity
+                        Text("Custom")
+                            .font(.system(size: 9))
+                            .fontWeight(.semibold)
+                            .foregroundColor(.adaptiveWhite)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(
+                                RoundedRectangle(cornerRadius: 4)
+                                    .fill(Color.purple.opacity(0.6))
+                            )
                     }
+
+                    Label("\(userActivity.durationMinutes) min", systemImage: "clock.fill")
+                        .font(.caption)
+                        .foregroundColor(.adaptiveSecondary)
                 }
 
-                // Start/Stop Buttons
-                HStack(spacing: 8) {
-                    // Start Button
-                    Button(action: {
-                        HapticManager.impact(.light)
-                        // TODO: Add start functionality
-                    }) {
-                        HStack(spacing: 6) {
-                            Image(systemName: "play.fill")
-                                .font(.system(size: 12))
-                            Text("Start")
-                                .font(.caption)
-                                .fontWeight(.semibold)
-                        }
-                        .foregroundColor(.adaptiveWhite)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
-                        .background(
-                            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                .fill(Color.green.opacity(0.6))
-                        )
-                    }
-                    .buttonStyle(PlainButtonStyle())
+                Spacer()
 
-                    // Stop Button
-                    Button(action: {
-                        HapticManager.impact(.light)
-                        // TODO: Add stop functionality
-                    }) {
-                        HStack(spacing: 6) {
-                            Image(systemName: "stop.fill")
-                                .font(.system(size: 12))
-                            Text("Stop")
-                                .font(.caption)
-                                .fontWeight(.semibold)
+                // Control Icons
+                HStack(spacing: 16) {
+                    if !isRunning {
+                        // Start Icon
+                        Button(action: onStart) {
+                            Image(systemName: "play.circle.fill")
+                                .font(.system(size: 32))
+                                .foregroundColor(.green)
                         }
-                        .foregroundColor(.adaptiveWhite)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
-                        .background(
-                            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                .fill(Color.red.opacity(0.6))
-                        )
+                        .buttonStyle(PlainButtonStyle())
+                    } else {
+                        // Pause Icon
+                        Button(action: onPause) {
+                            Image(systemName: "pause.circle.fill")
+                                .font(.system(size: 32))
+                                .foregroundColor(.orange)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+
+                        // Stop Icon
+                        Button(action: onStop) {
+                            Image(systemName: "stop.circle.fill")
+                                .font(.system(size: 32))
+                                .foregroundColor(.red)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                    }
+
+                    // Cancel/Remove Icon
+                    Button(action: onRemove) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 32))
+                            .foregroundColor(.adaptiveTertiary)
                     }
                     .buttonStyle(PlainButtonStyle())
                 }

@@ -144,7 +144,10 @@ class HomeViewModel: ObservableObject {
 
         do {
             try await orderService.addToCart(userId: userId, activityId: userActivityId, isUserActivity: true)
+            // Remove from home screen after adding to cart
+            try await activityService.removeUserActivityFromHomeScreen(activityId: userActivityId)
             await loadCart()
+            await loadUserActivities()
             HapticManager.notification(.success)
         } catch {
             errorMessage = "Failed to add item to cart"
